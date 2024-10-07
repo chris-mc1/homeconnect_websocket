@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools", "versioningit"]
+build-backend = "setuptools.build_meta"
+
+[project]
+dynamic = ["version"]
+name = "homeconnect_websocket"
+authors = [{ name = "chris-mc1" }]
+dependencies = [
+  "aiohttp>=3.10",
+  "sslpsk3==1.1.0",
+  "xmltodict>=0.13.0",
+  "pycryptodome>=3.21.0",
+]
+description = "Home Connect Websocket API"
+readme = "README.md"
+requires-python = ">=3.12"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/chris-mc1/homeconnect_websocket"
+Issues = "https://github.com/chris-mc1/homeconnect_websocket/issues"
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8.3.0",
+  "pytest-asyncio>=0.24.0",
+  "pytest-aiohttp>=1.0.5",
+  "coverage>=7.6.0",
+  "pytest-cov>=5.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.versioningit.vcs]
+default-tag = "0.0.0"
+
+[tool.versioningit.format]
+distance = "{base_version}.dev{distance}"
+dirty = "{base_version}+{rev}"
+distance-dirty = "{base_version}.dev{distance}+{rev}"
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = ["if TYPE_CHECKING:"]
