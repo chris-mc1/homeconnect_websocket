@@ -24,6 +24,7 @@ jobs:
       url: https://test.pypi.org/project/homeconnect-websocket/
     permissions:
       id-token: write
+      contents: read
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python
