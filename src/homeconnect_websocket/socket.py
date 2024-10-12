@@ -143,7 +143,7 @@ class TlsSocket(HCSocket):
     """TLS (wss) Socket."""
 
     _URL_FORMAT = "wss://{host}:443/homeconnect"
-    _ssl_context: SSLPSKContext
+    _ssl_context: ssl.SSLContext
 
     def __init__(self, host: str, psk64: str) -> None:
         """
@@ -156,12 +156,13 @@ class TlsSocket(HCSocket):
 
         """
         # setup sslcontext
-        self._ssl_context = SSLPSKContext(ssl.PROTOCOL_TLS_CLIENT)
-        self._ssl_context.options |= ssl.OP_NO_TLSv1_3
-        self._ssl_context.set_ciphers("ALL")
-        self._ssl_context.psk = urlsafe_b64decode(psk64 + "===")
+        psk = urlsafe_b64decode(psk64 + "===")
+        self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        self._ssl_context.maximum_version = ssl.TLSVersion.TLSv1_2
+        self._ssl_context.set_ciphers("PSK")
         self._ssl_context.check_hostname = False
-        self._ssl_context.suppress_ragged_eofs = True
+        self._ssl_context.verify_mode = ssl.CERT_NONE
+        self._ssl_context.set_psk_client_callback(lambda _: (None, psk))
         super().__init__(host)
 
     async def connect(self) -> None:
