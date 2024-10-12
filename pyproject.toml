@@ -8,16 +8,15 @@ name = "homeconnect_websocket"
 authors = [{ name = "chris-mc1" }]
 dependencies = [
   "aiohttp>=3.10",
-  "sslpsk3==1.1.0",
   "xmltodict>=0.13.0",
   "pycryptodome>=3.21.0",
 ]
 description = "Home Connect Websocket API"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 classifiers = [
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Operating System :: OS Independent",
 ]
 
