@@ -6,7 +6,7 @@ from abc import ABC
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, TypedDict
 
-from .exceptions import AccessError
+from .errors import AccessError
 from .message import Action, Message
 
 if TYPE_CHECKING:

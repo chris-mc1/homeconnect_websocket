@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import aiohttp
 
 from .const import DEFAULT_HANDSHAKE_TIMEOUT, DEFAULT_SEND_TIMEOUT
-from .exceptions import CodeResponsError
+from .errors import CodeResponsError
 from .message import Action, Message, load_message
 from .socket import AesSocket, HCSocket, TlsSocket
 
