@@ -13,3 +13,6 @@ class CodeResponsError(HomeConnectError):
 
 class AccessError(HomeConnectError):
     """Entity not Accessible."""
+
+class NotConnectedError(HomeConnectError):
+    """Client is not Connected."""

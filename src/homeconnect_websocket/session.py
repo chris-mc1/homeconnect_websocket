@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import aiohttp
 
 from .const import DEFAULT_HANDSHAKE_TIMEOUT, DEFAULT_SEND_TIMEOUT
-from .errors import CodeResponsError
+from .errors import CodeResponsError, NotConnectedError
 from .message import Action, Message, load_message
 from .socket import AesSocket, HCSocket, TlsSocket
 
@@ -29,8 +29,9 @@ class HCSession:
     _psk64: str
     _iv64: str | None
     _device_info: dict
-    _msg_queues: dict[int, asyncio.Queue]
-    _msg_events: dict[int, asyncio.Event]
+    _response_messages: dict[int, Message]
+    _response_events: dict[int, asyncio.Event]
+    _send_lock: asyncio.Lock
     _socket: HCSocket = None
     _connected: asyncio.Event
     _recv_task: asyncio.Task = None
@@ -67,8 +68,10 @@ class HCSession:
         }
         self._connected = asyncio.Event()
         self.handshake = True
-        self._msg_queues = {}
-        self._msg_events = {}
+        self._response_messages = {}
+        self._response_events = {}
+        self._response_lock = asyncio.Lock()
+        self._send_lock = asyncio.Lock()
         self.service_versions = {}
         self._tasks = set()
 
@@ -95,7 +98,7 @@ class HCSession:
         """
         _LOGGER.info("Connecting to %s", self._host)
         self._ext_message_handler = message_handler
-        self._reset()
+        await self._reset()
 
         # create socket
         if self._iv64:
@@ -125,19 +128,23 @@ class HCSession:
             _LOGGER.exception("Handshake Timeout")
             raise
 
-    def _reset(self) -> None:
+    async def _reset(self) -> None:
         """Rest connction state."""
         self.service_versions.clear()
-        self._msg_queues.clear()
-        self._msg_events.clear()
         self._connected.clear()
+        self._response_messages.clear()
+        # Set all response events
+        async with self._response_lock:
+            for event in self._response_events.values():
+                event.set()
+            self._response_events.clear()
 
     async def _recv_loop(self) -> None:
         while self._socket:
             try:
                 if self._socket.closed:
                     _LOGGER.debug("Socket closed, opening")
-                    self._reset()
+                    await self._reset()
                     await self._socket.connect()
                 async for message in self._socket:
                     # recv messages
@@ -155,7 +162,7 @@ class HCSession:
             # connection reset/reconncted
             if self._connected.is_set():
                 _LOGGER.info("Got init message while connected, resetting")
-                self._reset()
+                await self._reset()
             # set new sID, msgID
             self._sid = message.sid
             self._last_msg_id = message.data[0]["edMsgID"]
@@ -170,13 +177,22 @@ class HCSession:
                 self._connected.set()
                 await self._call_ext_message_handler(message)
 
-        elif message.msg_id in self._msg_events:
+        elif message.action == Action.RESPONSE:
             try:
-                self._msg_queues[message.msg_id].put_nowait(message)
-                self._msg_events[message.msg_id].set()
-            except asyncio.QueueFull:
+                async with self._response_lock:
+                    if self._response_events[message.msg_id].is_set():
                 # should never happen
-                _LOGGER.warning("Msg ID %s was received more then once", message.msg_id)
+                        _LOGGER.warning(
+                            "Response for Msg ID %s was received more then once",
+                            message.msg_id,
+                        )
+                    else:
+                        self._response_messages[message.msg_id] = message
+                        self._response_events[message.msg_id].set()
+            except KeyError:
+                _LOGGER.warning(
+                    "Received response for unkown Msg ID %s", message.msg_id
+                )
         else:
             # call external message handler
             await self._call_ext_message_handler(message)
@@ -268,30 +284,28 @@ class HCSession:
         """Send message to Appliance, returns Response Message."""
         response_message: Message | None = None
 
+        async with self._send_lock:
         self._set_message_info(send_message)
 
-        # add queue for response
-        response_queue = asyncio.Queue(maxsize=1)
-        self._msg_queues[send_message.msg_id] = response_queue
-
         response_event = asyncio.Event()
-        self._msg_events[send_message.msg_id] = response_event
+            async with self._response_lock:
+                self._response_events[send_message.msg_id] = response_event
 
         # send message
         await self._socket.send(send_message.dump())
 
         try:
             await asyncio.wait_for(response_event.wait(), timeout)
-            response_message = await response_queue.get()
-            response_queue.task_done()
-
+            response_message = self._response_messages[send_message.msg_id]
         except TimeoutError:
             _LOGGER.warning("Timeout for message %s", send_message.msg_id)
             raise
-
+        except KeyError:
+            if not self._connected.is_set():
+                raise NotConnectedError from None
         finally:
-            self._msg_queues.pop(send_message.msg_id)
-            self._msg_events.pop(send_message.msg_id)
+            async with self._response_lock:
+                self._response_events.pop(send_message.msg_id)
 
         if response_message.code:
             _LOGGER.warning(
@@ -304,6 +318,6 @@ class HCSession:
 
     async def send(self, message: Message) -> None:
         """Send message to Appliance, returns immediately."""
+        async with self._send_lock:
         self._set_message_info(message)
-        # Make sure socket is open
         await self._socket.send(message.dump())
