@@ -147,6 +147,10 @@ class Entity(ABC):
             self._rev_enumeration = {
                 v: int(k) for k, v in description["enumeration"].items()
             }
+        if "initValue" in description:
+            self._value = description["initValue"]
+        if "default" in description:
+            self._value = description["default"]
 
     async def update(self, values: dict) -> None:
         """Update the entity state and execute callbacks."""
