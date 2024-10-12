@@ -143,7 +143,7 @@ class HCSocket:
 class TlsSocket(HCSocket):
     """TLS (wss) Socket."""
 
-    _URL_FORMAT = "wss://{host}:433/homeconnect"
+    _URL_FORMAT = "wss://{host}:443/homeconnect"
     _ssl_context: SSLPSKContext
 
     def __init__(self, host: str, psk64: str) -> None:
