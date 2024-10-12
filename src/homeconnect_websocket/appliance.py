@@ -6,6 +6,7 @@ from .entities import (
     ActiveProgram,
     Command,
     DeviceDescription,
+    DeviceInfo,
     Entity,
     Event,
     Option,
@@ -22,7 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class HomeAppliance:
     session: HCSession
-    info: dict
+    info: DeviceInfo
     entities_uid: dict[int, Entity]
     "entities by uid"
 
@@ -64,7 +65,7 @@ class HomeAppliance:
 
         Args:
         ----
-            description (dict): parsed Device description
+            description (DeviceDescription): parsed Device description
             host (str): Host
             app_name (str): Name used to identify this App
             app_id (str): ID used to identify this App
@@ -73,7 +74,7 @@ class HomeAppliance:
 
         """
         self.session = HCSession(host, app_name, app_id, psk64, iv64)
-        self.info: dict[str, str] = description.get("info", {})
+        self.info = description.get("info", {})
 
         self.entities_uid = {}
         self.entities = {}

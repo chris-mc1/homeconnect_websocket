@@ -15,7 +15,6 @@ from sslpsk3.sslpsk3 import _ssl_set_psk_client_callback, _ssl_set_psk_server_ca
 
 _LOGGER = logging.getLogger(__name__)
 
-
 # Monkey patch for sslpsk
 # see https://github.com/maovidal/paho_sslpsk2_demo/blob/main/paho_sslpsk2_demo.py
 def _sslobj(sock):
@@ -154,7 +153,6 @@ class TlsSocket(HCSocket):
         ----
         host (str): Host
         psk64 (str): psk64 key
-        port (int): port (default: 443)
 
         """
         # setup sslcontext
@@ -166,13 +164,15 @@ class TlsSocket(HCSocket):
         self._ssl_context.suppress_ragged_eofs = True
         super().__init__(host)
 
-    async def connect(self) -> None:  # noqa: D102
+    async def connect(self) -> None:
+        """Connect to websocket."""
         _LOGGER.debug("Socket connecting to %s, mode=TLS", self._url)
         self._websocket = await self._session.ws_connect(
             self._url, ssl=self._ssl_context, heartbeat=20
         )
 
-    async def send(self, message: str) -> None:  # noqa: D102
+    async def send(self, message: str) -> None:
+        """Send message."""
         _LOGGER.debug("Send     %s: %s", self._url, message)
         await self._websocket.send_str(message)
 
@@ -188,14 +188,13 @@ MINIMUM_MESSAGE_LENGTH = 32
 
 class AesSocket(HCSocket):
     """
-    AES (ws) Socket.
+    AES Socket.
 
     Args:
     ----
     host (str): Host
     psk64 (str): psk64 key
     iv64 (str): iv64
-    port (int): port (default: 80)
 
     """
 
@@ -204,7 +203,16 @@ class AesSocket(HCSocket):
     _last_tx_hmac: bytes
 
     def __init__(self, host: str, psk64: str, iv64: str) -> None:
-        """AES Socket."""
+        """
+        AES Socket.
+
+        Args:
+        ----
+            host (str): Host
+            psk64 (str): psk64 key
+            iv64 (str): iv64
+
+        """
         psk = urlsafe_b64decode(psk64 + "===")
         self._iv = urlsafe_b64decode(iv64 + "===")
         self._enckey = hmac.digest(psk, b"ENC", digest="sha256")
@@ -213,6 +221,7 @@ class AesSocket(HCSocket):
         super().__init__(host)
 
     async def connect(self) -> None:
+        """Connect to websocket."""
         self._last_rx_hmac = bytes(16)
         self._last_tx_hmac = bytes(16)
 
@@ -223,6 +232,7 @@ class AesSocket(HCSocket):
         self._websocket = await self._session.ws_connect(self._url, heartbeat=20)
 
     async def send(self, clear_msg: str) -> None:
+        """Recive message."""
         if isinstance(clear_msg, str):
             clear_msg = bytes(clear_msg, "utf-8")
 

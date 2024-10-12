@@ -130,6 +130,7 @@ class Entity(ABC):
     def __init__(
         self, description: EntityDescription, appliance: HomeAppliance
     ) -> None:
+        """BaseEntity Class."""
         self._appliance: HomeAppliance = appliance
         self._uid = description["uid"]
         self._name = description["name"]

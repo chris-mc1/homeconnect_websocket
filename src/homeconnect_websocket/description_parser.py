@@ -16,6 +16,7 @@ from .entities import (
 
 
 def convert_bool(obj: str | bool) -> bool:
+    """Convert a string to as bool."""
     if isinstance(obj, str):
         if obj.lower() == "true":
             return True

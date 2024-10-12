@@ -42,7 +42,7 @@ class HCSession:
         self,
         host: str,
         app_name: str,
-        device_id: str,
+        app_id: str,
         psk64: str,
         iv64: str | None = None,
     ) -> None:
@@ -64,7 +64,7 @@ class HCSession:
         self._device_info = {
             "deviceType": "Application",
             "deviceName": app_name,
-            "deviceID": device_id,
+            "deviceID": app_id,
         }
         self._connected = asyncio.Event()
         self.handshake = True
@@ -181,7 +181,7 @@ class HCSession:
             try:
                 async with self._response_lock:
                     if self._response_events[message.msg_id].is_set():
-                # should never happen
+                        # should never happen
                         _LOGGER.warning(
                             "Response for Msg ID %s was received more then once",
                             message.msg_id,
@@ -285,14 +285,14 @@ class HCSession:
         response_message: Message | None = None
 
         async with self._send_lock:
-        self._set_message_info(send_message)
+            self._set_message_info(send_message)
 
-        response_event = asyncio.Event()
+            response_event = asyncio.Event()
             async with self._response_lock:
                 self._response_events[send_message.msg_id] = response_event
 
-        # send message
-        await self._socket.send(send_message.dump())
+            # send message
+            await self._socket.send(send_message.dump())
 
         try:
             await asyncio.wait_for(response_event.wait(), timeout)
@@ -319,5 +319,5 @@ class HCSession:
     async def send(self, message: Message) -> None:
         """Send message to Appliance, returns immediately."""
         async with self._send_lock:
-        self._set_message_info(message)
-        await self._socket.send(message.dump())
+            self._set_message_info(message)
+            await self._socket.send(message.dump())
