@@ -109,7 +109,7 @@ class HomeAppliance:
                 # Update device Info
                 self.info.update(message.data[0])
 
-    async def _update_entities(self, data: dict) -> None:
+    async def _update_entities(self, data: list[dict]) -> None:
         """Update entities from Message data."""
         for entity in data:
             uid = int(entity["uid"])

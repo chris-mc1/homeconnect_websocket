@@ -15,21 +15,19 @@ class Action(StrEnum):
     NOTIFY = "NOTIFY"
 
 
-def load_message(msg: str | dict) -> Message:
-        """Load Message from json."""
-        message = Message()
-        if isinstance(msg, str):
-            msg = json.loads(msg)
-        message.sid = int(msg["sID"])
-        message.msg_id = int(msg["msgID"])
-        message.resource = msg["resource"]
-        message.version = int(msg["version"])
-        message.action = Action(msg["action"])
-        if "data" in msg:
-            message.data = msg["data"]
-        if "code" in msg:
-            message.code = msg["code"]
-        return message
+def load_message(msg_str: str | dict) -> Message:
+    """Load Message from json."""
+    message = Message()
+    msg = json.loads(msg_str) if isinstance(msg_str, str) else msg_str
+    message.sid = int(msg["sID"])
+    message.msg_id = int(msg["msgID"])
+    message.resource = msg["resource"]
+    message.version = int(msg["version"])
+    message.action = Action(msg["action"])
+    message.data = msg.get("data", None)
+    message.code = msg.get("code", None)
+    return message
+
 
 @dataclass
 class Message:
@@ -45,12 +43,12 @@ class Message:
     """Service Version"""
     action: Action = Action.GET
     """Action"""
-    data: dict | list[dict] | None = None
+    data: list[dict] | None = None
     """Message Data"""
-    code: int = None
+    code: int | None = None
     """Response Code"""
 
-    def responde(self, data: dict | list[dict] | None = None) -> Message:
+    def responde(self, data: list[dict] | None = None) -> Message:
         """Generate a response Message."""
         return Message(
             sid=self.sid,
