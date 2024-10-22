@@ -12,7 +12,7 @@ from .message import Action, Message, load_message
 from .socket import AesSocket, HCSocket, TlsSocket
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Awaitable, Callable
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class HCSession:
     _connected: asyncio.Event
     _recv_task: asyncio.Task = None
     _tasks: set[asyncio.Task]
-    _ext_message_handler: Callable[[Message], None] | None = None
+    _ext_message_handler: Callable[[Message], None | Awaitable[None]] | None = None
 
     def __init__(
         self,
@@ -84,7 +84,7 @@ class HCSession:
 
     async def connect(
         self,
-        message_handler: Callable[[Message], None],
+        message_handler: Callable[[Message], None | Awaitable[None]],
         timeout: int = DEFAULT_HANDSHAKE_TIMEOUT,
     ) -> None:
         """

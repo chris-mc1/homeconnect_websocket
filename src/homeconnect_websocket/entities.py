@@ -10,7 +10,7 @@ from .errors import AccessError
 from .message import Action, Message
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Awaitable, Callable
 
     from .appliance import HomeAppliance
 
@@ -110,8 +110,8 @@ class DeviceDescription(TypedDict):
     command: list[EntityDescription]
     option: list[EntityDescription]
     program: list[EntityDescription]
-    activeProgram: ActiveProgram
-    selectedProgram: SelectedProgram
+    activeProgram: EntityDescription
+    selectedProgram: EntityDescription
 
 
 class Entity(ABC):
@@ -120,7 +120,7 @@ class Entity(ABC):
     _appliance: HomeAppliance
     _uid: int
     _name: str
-    _callbacks: set[Callable[[Entity], None]]
+    _callbacks: set[Callable[[Entity], None | Awaitable[None]]]
     _access: Access = None
     _available: bool = None
     _value: Any | None = None
@@ -169,12 +169,16 @@ class Entity(ABC):
             except Exception:
                 _LOGGER.exception("Callback for %s raised an Exception", self.name)
 
-    def register_callback(self, callback: Callable[[Entity], None]) -> None:
+    def register_callback(
+        self, callback: Callable[[Entity], None | Awaitable[None]]
+    ) -> None:
         """Register update callback."""
         if callback not in self._callbacks:
             self._callbacks.add(callback)
 
-    def unregister_callback(self, callback: Callable[[Entity], None]) -> None:
+    def unregister_callback(
+        self, callback: Callable[[Entity], None | Awaitable[None]]
+    ) -> None:
         """Unregister update callback."""
         self._callbacks.remove(callback)
 
