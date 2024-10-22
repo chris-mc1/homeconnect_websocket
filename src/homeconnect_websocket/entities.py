@@ -62,6 +62,19 @@ class DeviceInfo(TypedDict):
     model: str
     version: int
     revision: int
+    deviceID: str
+    eNumber: str
+    vib: str
+    mac: str
+    haVersion: str
+    swVersion: str
+    hwVersion: str
+    deviceType: str
+    deviceInfo: str
+    customerIndex: str
+    serialNumber: str
+    fdString: str
+    shipSki: str
 
 
 class OptionDescription(TypedDict):
