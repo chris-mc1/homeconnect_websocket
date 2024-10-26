@@ -112,6 +112,8 @@ class TlsSocket(HCSocket):
 
     async def _receive(self, message: aiohttp.WSMessage) -> str:
         _LOGGER.debug("Received %s: %s", self._url, str(message.data))
+        if message.type == aiohttp.WSMsgType.ERROR:
+            raise message.data
         return str(message.data)
 
 
