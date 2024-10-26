@@ -134,8 +134,6 @@ class Entity(ABC):
     _uid: int
     _name: str
     _callbacks: set[Callable[[Entity], None | Awaitable[None]]]
-    _access: Access = None
-    _available: bool = None
     _value: Any | None = None
     _enumeration: dict = None
     _rev_enumeration: dict = None
@@ -149,10 +147,6 @@ class Entity(ABC):
         self._name = description["name"]
         self._callbacks = set()
         self._tasks = set()
-        if "available" in description:
-            self._available = description["available"]
-        if "access" in description:
-            self._access = Access(description["access"])
         if "enumeration" in description:
             self._enumeration = {
                 int(k): v for k, v in description["enumeration"].items()
@@ -167,10 +161,6 @@ class Entity(ABC):
 
     async def update(self, values: dict) -> None:
         """Update the entity state and execute callbacks."""
-        if "available" in values:
-            self._available = bool(values["available"])
-        if "access" in values:
-            self._access = Access(values["access"].lower())
         if "value" in values:
             self._value = values["value"]
 
@@ -206,16 +196,6 @@ class Entity(ABC):
         return self._name
 
     @property
-    def available(self) -> bool | None:
-        """Current Available state."""
-        return self._available
-
-    @property
-    def access(self) -> Access | None:
-        """Current Access state."""
-        return self._access
-
-    @property
     def value(self) -> Any | None:
         """
         Current Value of the Entity.
@@ -244,13 +224,19 @@ class Entity(ABC):
 
     async def set_value_raw(self, value_raw: str | int | bool) -> None:
         """Set the raw Value."""
-        if self._access not in [Access.READ_WRITE, Access.WRITE_ONLY]:
-            msg = "Not Writable"
-            raise AccessError(msg)
+        try:
+            if self._access not in [Access.READ_WRITE, Access.WRITE_ONLY]:
+                msg = "Not Writable"
+                raise AccessError(msg)
+        except AttributeError:
+            pass
 
-        if not self._available:
-            msg = "Not Available"
-            raise AccessError(msg)
+        try:
+            if not self._available:
+                msg = "Not Available"
+                raise AccessError(msg)
+        except AttributeError:
+            pass
 
         message = Message(
             resource="/ro/values",
@@ -265,11 +251,53 @@ class Entity(ABC):
         return self._enumeration
 
 
-class Status(Entity):
+class AccessMixin(Entity):
+    """Mixin for Entities with access attribute."""
+
+    _access: Access = None
+
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
+        self._access = description.get("access")
+        super().__init__(description, appliance)
+
+    async def update(self, values: dict) -> None:
+        """Update the entity state and execute callbacks."""
+        if "access" in values:
+            self._access = Access(values["access"].lower())
+        await super().update(values)
+
+    @property
+    def access(self) -> Access | None:
+        """Current Access state."""
+        return self._access
+
+
+class AvailableMixin(Entity):
+    """Mixin for Entities with available attribute."""
+
+    _available: bool = None
+
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
+        self._available = description.get("available")
+        super().__init__(description, appliance)
+
+    async def update(self, values: dict) -> None:
+        """Update the entity state and execute callbacks."""
+        if "available" in values:
+            self._available = bool(values["available"])
+        await super().update(values)
+
+    @property
+    def available(self) -> bool | None:
+        """Current Available state."""
+        return self._available
+
+
+class Status(AccessMixin, AvailableMixin, Entity):
     """Represents an Settings Entity."""
 
 
-class Setting(Entity):
+class Setting(AccessMixin, AvailableMixin, Entity):
     """Represents an Settings Entity."""
 
 
@@ -289,7 +317,7 @@ class Event(Entity):
         )
 
 
-class Command(Entity):
+class Command(AccessMixin, AvailableMixin, Entity):
     """Represents an Command Entity."""
 
     async def execute(self, value: str | int | bool) -> None:
@@ -310,11 +338,11 @@ class Command(Entity):
         await self._appliance.session.send_sync(message)
 
 
-class Option(Entity):
+class Option(AccessMixin, AvailableMixin, Entity):
     """Represents an Option Entity."""
 
 
-class Program(Entity):
+class Program(AvailableMixin, Entity):
     """Represents an Program Entity."""
 
     def __init__(
@@ -349,13 +377,13 @@ class Program(Entity):
         await self._appliance.session.send_sync(message)
 
 
-class ActiveProgram(Entity):
+class ActiveProgram(AccessMixin, AvailableMixin, Entity):
     """Represents the Active_Program Entity."""
 
 
-class SelectedProgram(Entity):
+class SelectedProgram(AccessMixin, Entity):
     """Represents the Selected_Program Entity."""
 
 
-class ProtectionPort(Entity):
+class ProtectionPort(AccessMixin, Entity):
     """Represents an Protection_Port Entity."""
