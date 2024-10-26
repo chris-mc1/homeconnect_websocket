@@ -116,7 +116,7 @@ class HomeAppliance:
             if uid in self.entities_uid:
                 await self.entities_uid[uid].update(entity)
             else:
-                _LOGGER.info("Recived Update for unkown entity %s", uid)
+                _LOGGER.debug("Recived Update for unkown entity %s", uid)
 
     def _create_entities(self, description: DeviceDescription):
         """Create Entities from Device description."""
