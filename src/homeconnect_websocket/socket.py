@@ -15,6 +15,7 @@ from sslpsk3.sslpsk3 import _ssl_set_psk_client_callback, _ssl_set_psk_server_ca
 
 _LOGGER = logging.getLogger(__name__)
 
+
 # Monkey patch for sslpsk
 # see https://github.com/maovidal/paho_sslpsk2_demo/blob/main/paho_sslpsk2_demo.py
 def _sslobj(sock):
@@ -178,6 +179,8 @@ class TlsSocket(HCSocket):
 
     async def _receive(self, message: aiohttp.WSMessage) -> str:
         _LOGGER.debug("Received %s: %s", self._url, str(message.data))
+        if message.type == aiohttp.WSMsgType.ERROR:
+            raise message.data
         return str(message.data)
 
 

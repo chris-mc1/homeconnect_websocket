@@ -150,7 +150,7 @@ class HCSession:
                     # recv messages
                     message_obj = load_message(message)
                     await self._message_handler(message_obj)
-            except aiohttp.ClientConnectionError as ex:
+            except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError) as ex:
                 _LOGGER.warning(ex)
                 raise
             except asyncio.CancelledError:
