@@ -257,7 +257,7 @@ class AccessMixin(Entity):
     _access: Access = None
 
     def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
-        self._access = description.get("access")
+        self._access = description.get("access", self._access)
         super().__init__(description, appliance)
 
     async def update(self, values: dict) -> None:
@@ -277,8 +277,10 @@ class AvailableMixin(Entity):
 
     _available: bool = None
 
-    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
-        self._available = description.get("available")
+    def __init__(
+        self, description: EntityDescription, appliance: HomeAppliance
+    ) -> None:
+        self._available = description.get("available", self._available)
         super().__init__(description, appliance)
 
     async def update(self, values: dict) -> None:
@@ -380,10 +382,16 @@ class Program(AvailableMixin, Entity):
 class ActiveProgram(AccessMixin, AvailableMixin, Entity):
     """Represents the Active_Program Entity."""
 
+    _available = True
 
-class SelectedProgram(AccessMixin, Entity):
+
+class SelectedProgram(AccessMixin, AvailableMixin, Entity):
     """Represents the Selected_Program Entity."""
 
+    _available = True
 
-class ProtectionPort(AccessMixin, Entity):
+
+class ProtectionPort(AccessMixin, AvailableMixin, Entity):
     """Represents an Protection_Port Entity."""
+
+    _available = False
