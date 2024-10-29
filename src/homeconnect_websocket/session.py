@@ -6,7 +6,12 @@ from typing import TYPE_CHECKING
 
 import aiohttp
 
-from .const import DEFAULT_HANDSHAKE_TIMEOUT, DEFAULT_SEND_TIMEOUT
+from .const import (
+    DEFAULT_HANDSHAKE_TIMEOUT,
+    DEFAULT_SEND_TIMEOUT,
+    MAX_CONNECT_TIMEOUT,
+    TIMEOUT_INCREASE_FACTOR,
+)
 from .errors import CodeResponsError, NotConnectedError
 from .message import Action, Message, load_message
 from .socket import AesSocket, HCSocket, TlsSocket
@@ -74,6 +79,7 @@ class HCSession:
         self._send_lock = asyncio.Lock()
         self.service_versions = {}
         self._tasks = set()
+        self._retry_count = 0
 
     @property
     def connected(self) -> bool:
@@ -152,7 +158,9 @@ class HCSession:
                     await self._message_handler(message_obj)
             except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError) as ex:
                 _LOGGER.warning(ex)
-                raise
+                timeout = TIMEOUT_INCREASE_FACTOR**self._retry_count
+                self._retry_count += 1
+                await asyncio.sleep(min(timeout, MAX_CONNECT_TIMEOUT))
             except asyncio.CancelledError:
                 raise
 
@@ -175,6 +183,7 @@ class HCSession:
             else:
                 _LOGGER.info("Connected, no handshake")
                 self._connected.set()
+                self._retry_count = 0
                 await self._call_ext_message_handler(message)
 
         elif message.action == Action.RESPONSE:
@@ -237,6 +246,7 @@ class HCSession:
 
             # handshake completed
             self._connected.set()
+            self._retry_count = 0
             _LOGGER.info("Handshake completed")
         except asyncio.CancelledError:
             _LOGGER.exception("Handshake cancelled")
