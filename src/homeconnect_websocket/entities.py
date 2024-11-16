@@ -256,7 +256,9 @@ class AccessMixin(Entity):
 
     _access: Access = None
 
-    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
+    def __init__(
+        self, description: EntityDescription, appliance: HomeAppliance
+    ) -> None:
         self._access = description.get("access", self._access)
         super().__init__(description, appliance)
 
@@ -295,11 +297,42 @@ class AvailableMixin(Entity):
         return self._available
 
 
-class Status(AccessMixin, AvailableMixin, Entity):
+class MinMaxMixin(Entity):
+    """Mixin for Entities with available Min and Max values."""
+
+    _min: float = None
+    _max: float = None
+    _step: float = None
+
+    def __init__(
+        self, description: EntityDescription, appliance: HomeAppliance
+    ) -> None:
+        self._min = description.get("min", self._min)
+        self._max = description.get("min", self._max)
+        self._step = description.get("stepSize", self._step)
+        super().__init__(description, appliance)
+
+    @property
+    def min(self) -> bool | None:
+        """Minimum value."""
+        return self._min
+
+    @property
+    def max(self) -> bool | None:
+        """Maximum value."""
+        return self._max
+
+    @property
+    def step(self) -> bool | None:
+        """Minimum value."""
+        return self._step
+
+
+class Status(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
     """Represents an Settings Entity."""
 
 
-class Setting(AccessMixin, AvailableMixin, Entity):
+class Setting(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
     """Represents an Settings Entity."""
 
 
@@ -319,7 +352,7 @@ class Event(Entity):
         )
 
 
-class Command(AccessMixin, AvailableMixin, Entity):
+class Command(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
     """Represents an Command Entity."""
 
     async def execute(self, value: str | int | bool) -> None:
@@ -340,7 +373,7 @@ class Command(AccessMixin, AvailableMixin, Entity):
         await self._appliance.session.send_sync(message)
 
 
-class Option(AccessMixin, AvailableMixin, Entity):
+class Option(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
     """Represents an Option Entity."""
 
 
