@@ -307,9 +307,12 @@ class MinMaxMixin(Entity):
     def __init__(
         self, description: EntityDescription, appliance: HomeAppliance
     ) -> None:
-        self._min = description.get("min", self._min)
-        self._max = description.get("min", self._max)
-        self._step = description.get("stepSize", self._step)
+        if "min" in description:
+            self._min = int(description["min"])
+        if "max" in description:
+            self._max = int(description["max"])
+        if "stepSize" in description:
+            self._step = int(description["stepSize"])
         super().__init__(description, appliance)
 
     @property
