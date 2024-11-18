@@ -124,10 +124,9 @@ class HCSession:
             _LOGGER.exception("Error connecting to Appliance")
             raise
         except TimeoutError as ex:
-            if self._recv_task.done():
+            if not self._recv_task.done():
                 self._recv_task.cancel()
-            task_exc = self._recv_task.exception()
-            if task_exc:
+            if task_exc := self._recv_task.exception():
                 _LOGGER.exception("Handshake Exception")
                 raise task_exc from ex
 
@@ -210,7 +209,12 @@ class HCSession:
         """Call the external message handler."""
         task = asyncio.create_task(self._ext_message_handler(message))
         self._tasks.add(task)
-        task.add_done_callback(self._tasks.discard)
+        task.add_done_callback(self._done_callback)
+
+    def _done_callback(self, task: asyncio.Task) -> None:
+        if exc := task.exception():
+            _LOGGER.exception("Exception in Session callback", exc_info=exc)
+        self._tasks.discard(task)
 
     async def _handshake(self, message_init: Message) -> None:
         try:
@@ -252,6 +256,8 @@ class HCSession:
             _LOGGER.exception("Handshake cancelled")
         except CodeResponsError:
             _LOGGER.exception("Received Code respons during Handshake")
+        except Exception:
+            _LOGGER.exception("Unknown Exception during Handshake")
 
     async def close(self) -> None:
         """Close connction."""

@@ -168,9 +168,16 @@ class Entity(ABC):
             try:
                 task = asyncio.create_task(callback(self))
                 self._tasks.add(task)
-                task.add_done_callback(self._tasks.discard)
+                task.add_done_callback(self._done_callback)
             except Exception:
                 _LOGGER.exception("Callback for %s raised an Exception", self.name)
+
+    def _done_callback(self, task: asyncio.Task) -> None:
+        if exc := task.exception():
+            _LOGGER.exception(
+                "Exception in callback for entity %s", self.name, exc_info=exc
+            )
+        self._tasks.discard(task)
 
     def register_callback(
         self, callback: Callable[[Entity], None | Awaitable[None]]
