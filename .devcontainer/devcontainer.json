@@ -1,6 +1,6 @@
 {
     "name": "homeconnect_websocket",
-    "image": "mcr.microsoft.com/devcontainers/python:3.12-bullseye",
+    "image": "mcr.microsoft.com/devcontainers/python:3.13",
     "postCreateCommand": "python3 -m pip install -e .[test]",
     "customizations": {
         "vscode": {
