@@ -13,8 +13,8 @@ from .const import (
     TIMEOUT_INCREASE_FACTOR,
 )
 from .errors import CodeResponsError, NotConnectedError
+from .hc_socket import AesSocket, HCSocket, TlsSocket
 from .message import Action, Message, load_message
-from .socket import AesSocket, HCSocket, TlsSocket
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
