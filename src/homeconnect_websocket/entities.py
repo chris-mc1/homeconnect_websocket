@@ -266,6 +266,15 @@ class AccessMixin(Entity):
     def __init__(
         self, description: EntityDescription, appliance: HomeAppliance
     ) -> None:
+        """
+        Mixin for Entities with access attribute.
+
+        Args:
+        ----
+            description (EntityDescription): The entity description
+            appliance (HomeAppliance): Appliance
+
+        """
         self._access = description.get("access", self._access)
         super().__init__(description, appliance)
 
@@ -289,6 +298,15 @@ class AvailableMixin(Entity):
     def __init__(
         self, description: EntityDescription, appliance: HomeAppliance
     ) -> None:
+        """
+        Mixin for Entities with available attribute.
+
+        Args:
+        ----
+            description (EntityDescription): The entity description
+            appliance (HomeAppliance): Appliance
+
+        """
         self._available = description.get("available", self._available)
         super().__init__(description, appliance)
 
@@ -314,6 +332,15 @@ class MinMaxMixin(Entity):
     def __init__(
         self, description: EntityDescription, appliance: HomeAppliance
     ) -> None:
+        """
+        Mixin for Entities with available Min and Max values.
+
+        Args:
+        ----
+            description (EntityDescription): The entity description
+            appliance (HomeAppliance): Appliance
+
+        """
         if "min" in description:
             self._min = int(description["min"])
         if "max" in description:
@@ -393,6 +420,15 @@ class Program(AvailableMixin, Entity):
     def __init__(
         self, description: EntityDescription, appliance: HomeAppliance
     ) -> None:
+        """
+        Program Entity.
+
+        Args:
+        ----
+            description (EntityDescription): parsed Device description
+            appliance (HomeAppliance): Host
+
+        """
         super().__init__(description, appliance)
         self._options: list[Option] = []
         for option in description["options"]:

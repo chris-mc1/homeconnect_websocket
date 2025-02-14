@@ -31,6 +31,7 @@ def convert_bool(obj: str | bool) -> bool:
 
 
 def parse_feature_mapping(feature_mapping: dict) -> dict:
+    """Parse Feature mapping."""
     features = {"feature": {}, "error": {}, "enumeration": {}}
 
     for feature in feature_mapping["featureDescription"]["feature"]:

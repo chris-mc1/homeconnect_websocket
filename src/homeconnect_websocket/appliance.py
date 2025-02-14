@@ -22,6 +22,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class HomeAppliance:
+    """HomeConnect Appliance."""
+
     session: HCSession
     info: DeviceInfo
     entities_uid: dict[int, Entity]
@@ -118,7 +120,7 @@ class HomeAppliance:
             else:
                 _LOGGER.debug("Recived Update for unkown entity %s", uid)
 
-    def _create_entities(self, description: DeviceDescription):
+    def _create_entities(self, description: DeviceDescription) -> None:
         """Create Entities from Device description."""
         for status in description["status"]:
             entity = Status(status, self)
