@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<device>
+    <description>
+        <type>HomeAppliance</type>
+        <brand>Fake_Brand</brand>
+        <model>Fake_Model</model>
+        <version>2</version>
+        <revision>0</revision>
+        <pairableDeviceTypes>
+            <deviceType>Application</deviceType>
+        </pairableDeviceTypes>
+    </description>
+    <statusList access="read" available="true" uid="0102">
+        <status access="read" available="true" refCID="01" refDID="00" uid="0005" />
+        <status access="read" available="true" enumerationType="0201" refCID="03" refDID="80"
+            uid="020F" />
+    </statusList>
+    <settingList access="readWrite" available="true" uid="0103">
+        <setting access="readWrite" available="true" refCID="01" max="10" min="0" stepSize="1" initValue="1" default="0" refDID="00" uid="0003" passwordProtected="false" notifyOnChange="false" />
+        <setting access="readWrite" available="true" refCID="01" refDID="00" uid="0004" />
+    </settingList>
+    <eventList uid="0104">
+        <event enumerationType="0001" handling="acknowledge" level="hint" refCID="03" refDID="80"
+            uid="0015" />
+        <event enumerationType="0001" handling="acknowledge" level="hint" refCID="03" refDID="80"
+            uid="0016" />
+    </eventList>
+    <commandList access="writeOnly" available="true" uid="0105">
+        <command access="writeOnly" available="true" refCID="01" refDID="00" uid="0001" />
+        <command access="writeOnly" available="true" refCID="01" refDID="00" uid="0002" />
+    </commandList>
+    <optionList access="readWrite" available="true" uid="0106">
+        <option access="read" available="true" refCID="11" refDID="A0" uid="021E" liveUpdate="true" />
+        <option access="read" available="true" refCID="10" refDID="82" uid="0220" />
+    </optionList>
+    <programGroup available="true" uid="0107">
+        <program available="true" execution="selectOnly" uid="2000">
+            <option access="readWrite" available="true" liveUpdate="false" default="true" refUID="021E" />
+            <option access="readWrite" available="true" liveUpdate="true" refUID="0220" />
+        </program>
+        <program available="true" uid="2001">
+            <option access="readWrite" available="true" liveUpdate="false" refUID="021E" />
+            <option access="readWrite" available="true" liveUpdate="true" refUID="0220" />
+        </program>
+    </programGroup>
+
+    <activeProgram access="readWrite" validate="true" uid="0100" />
+    <selectedProgram access="readWrite" fullOptionSet="false" uid="0101" />
+    <protectionPort access="readWrite" available="true" uid="0102" />
+    <enumerationTypeList>
+        <enumerationType enid="0001">
+            <enumeration value="0" />
+            <enumeration value="1" />
+            <enumeration value="2" />
+        </enumerationType>
+        <enumerationType enid="0201">
+            <enumeration value="0" />
+            <enumeration value="1" />
+        </enumerationType>
+    </enumerationTypeList>
+</device>
