@@ -24,14 +24,15 @@ classifiers = [
 Homepage = "https://github.com/chris-mc1/homeconnect_websocket"
 Issues = "https://github.com/chris-mc1/homeconnect_websocket/issues"
 
-[project.optional-dependencies]
-test = [
+[dependency-groups]
+dev = [
   "pytest>=8.3.0",
   "pytest-asyncio>=0.24.0",
-  "pytest-aiohttp>=1.0.5",
   "coverage>=7.6.0",
   "pytest-cov>=5.0.0",
+  "ruff>=0.9"
 ]
+
 
 [tool.setuptools.packages.find]
 where = ["src"]

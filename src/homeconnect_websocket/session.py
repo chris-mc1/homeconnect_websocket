@@ -13,8 +13,8 @@ from .const import (
     TIMEOUT_INCREASE_FACTOR,
 )
 from .errors import CodeResponsError, NotConnectedError
+from .hc_socket import AesSocket, HCSocket, TlsSocket
 from .message import Action, Message, load_message
-from .socket import AesSocket, HCSocket, TlsSocket
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -90,15 +90,15 @@ class HCSession:
 
     async def connect(
         self,
-        message_handler: Callable[[Message], None | Awaitable[None]],
-        timeout: int = DEFAULT_HANDSHAKE_TIMEOUT,
+        message_handler: Callable[[Message], Awaitable[None]],
+        timeout: int = DEFAULT_HANDSHAKE_TIMEOUT,  # noqa: ASYNC109
     ) -> None:
         """
         Open Connection with Appliance.
 
         Args:
         ----
-        message_handler (Callable): called for each message
+        message_handler (Callable[[Message], Awaitable[None]]): called for each message
         timeout (int): timeout (Default: 60).
 
         """
@@ -113,7 +113,7 @@ class HCSession:
         elif self._psk64:
             _LOGGER.debug("No iv64, using TLS socket")
             self._socket = TlsSocket(self._host, self._psk64)
-        else:
+        else:  # For Testing
             _LOGGER.warning("Using unencrypted socket")
             self._socket = HCSocket(self._host)
         try:
@@ -295,7 +295,9 @@ class HCSession:
             raise ValueError(msg)
 
     async def send_sync(
-        self, send_message: Message, timeout: float = DEFAULT_SEND_TIMEOUT
+        self,
+        send_message: Message,
+        timeout: float = DEFAULT_SEND_TIMEOUT,  # noqa: ASYNC109
     ) -> Message | None:
         """Send message to Appliance, returns Response Message."""
         response_message: Message | None = None

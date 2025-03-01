@@ -3,4 +3,4 @@ from .description_parser import parse_device_description
 from .entities import DeviceDescription
 from .message import Message
 
-__all__ = ["HomeAppliance", "parse_device_description", "DeviceDescription", "Message"]
+__all__ = ["DeviceDescription", "HomeAppliance", "Message", "parse_device_description"]

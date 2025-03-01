@@ -1,0 +1,32 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v3
+      with:
+        python-version: "3.13"
+    - run: |
+        pip install uv
+        uv sync
+    - run: |
+        uv run ruff check src/
+        uv run ruff format --check src/
+        uv run ruff check tests/
+        uv run ruff format --check tests/
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v3
+      with:
+        python-version: "3.13"
+    - run: |
+        sudo pip install uv
+        sudo uv sync
+    - run: |
+        sudo uv run pytest tests/

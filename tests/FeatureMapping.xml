@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<featureMappingFile>
+  <featureDescription>
+    <feature refUID="0005">Status.1</feature>
+    <feature refUID="020F">Status.2</feature>
+    <feature refUID="0003">Setting.1</feature>
+    <feature refUID="0004">Setting.2</feature>
+    <feature refUID="0015">Event.1</feature>
+    <feature refUID="0016">Event.2</feature>
+    <feature refUID="0001">Command.1</feature>
+    <feature refUID="0002">Command.2</feature>
+    <feature refUID="021E">Option.1</feature>
+    <feature refUID="0220">Option.2</feature>
+    <feature refUID="2000">Program.1</feature>
+    <feature refUID="2001">Program.2</feature>
+    <feature refUID="0100">ActiveProgram</feature>
+    <feature refUID="0101">SelectedProgram</feature>
+    <feature refUID="0102">ProtectionPort</feature>
+  </featureDescription>
+  <errorDescription>
+    <error refEID="00C8">Error.1</error>
+    <error refEID="00CA">Error.2</error>
+  </errorDescription>
+  <enumDescriptionList>
+    <enumDescription refENID="0001" enumKey="EventState">
+      <enumMember refValue="0">Off</enumMember>
+      <enumMember refValue="1">Present</enumMember>
+      <enumMember refValue="2">Confirmed</enumMember>
+    </enumDescription>
+    <enumDescription refENID="0201" enumKey="EnumType.1">
+      <enumMember refValue="0">Open</enumMember>
+      <enumMember refValue="1">Closed</enumMember>
+    </enumDescription>
+  </enumDescriptionList>
+</featureMappingFile>
