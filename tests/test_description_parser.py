@@ -180,6 +180,110 @@ REFERENCE_DISCRIPTION = {
     },
 }
 
+REFERENCE_DISCRIPTION_SHORT = {
+    "info": {
+        "brand": "Fake_Brand",
+        "type": "HomeAppliance",
+        "model": "Fake_Model",
+        "version": 2,
+        "revision": 0,
+    },
+    "status": [
+        {
+            "uid": 5,
+            "name": "Status.1",
+            "contentType": "boolean",
+            "protocolType": "Boolean",
+            "available": True,
+            "access": "read",
+        },
+    ],
+    "setting": [
+        {
+            "uid": 3,
+            "name": "Setting.1",
+            "contentType": "boolean",
+            "protocolType": "Boolean",
+            "available": True,
+            "access": "readwrite",
+            "min": "0",
+            "max": "10",
+            "stepSize": "1",
+            "initValue": "1",
+            "default": "0",
+            "passwordProtected": False,
+            "notifyOnChange": False,
+        },
+    ],
+    "event": [
+        {
+            "uid": 21,
+            "name": "Event.1",
+            "contentType": "enumeration",
+            "protocolType": "Integer",
+            "enumeration": {"0": "Off"},
+            "handling": "acknowledge",
+            "level": "hint",
+        },
+    ],
+    "command": [
+        {
+            "uid": 1,
+            "name": "Command.1",
+            "contentType": "boolean",
+            "protocolType": "Boolean",
+            "available": True,
+            "access": "writeonly",
+        },
+    ],
+    "option": [
+        {
+            "uid": 542,
+            "name": "Option.1",
+            "contentType": "percent",
+            "protocolType": "Float",
+            "available": True,
+            "access": "read",
+            "liveUpdate": True,
+        },
+    ],
+    "program": [
+        {
+            "uid": 8192,
+            "name": "Program.1",
+            "available": True,
+            "execution": "selectonly",
+            "options": [
+                {
+                    "access": "readwrite",
+                    "available": True,
+                    "liveUpdate": False,
+                    "refUID": 542,
+                    "default": "true",
+                },
+            ],
+        },
+    ],
+    "activeProgram": {
+        "uid": 256,
+        "name": "ActiveProgram",
+        "access": "readwrite",
+        "validate": True,
+    },
+    "selectedProgram": {
+        "uid": 257,
+        "name": "SelectedProgram",
+        "access": "readwrite",
+        "fullOptionSet": False,
+    },
+    "protectionPort": {
+        "uid": 258,
+        "name": "ProtectionPort",
+        "access": "readwrite",
+        "available": True,
+    },
+}
+
 
 def test_convert_bool() -> None:
     """Test str to bool."""
@@ -197,14 +301,31 @@ def test_convert_bool() -> None:
         convert_bool("not bool")
 
 
-def test_parse_device_description() -> None:
+@pytest.mark.parametrize(
+    ("description_path", "feature_path", "expected"),
+    [
+        (
+            Path("tests/DeviceDescription.xml"),
+            Path("tests/FeatureMapping.xml"),
+            REFERENCE_DISCRIPTION,
+        ),
+        (
+            Path("tests/DeviceDescription_short.xml"),
+            Path("tests/FeatureMapping_short.xml"),
+            REFERENCE_DISCRIPTION_SHORT,
+        ),
+    ],
+)
+def test_parse_device_description(
+    description_path: Path, feature_path: Path, expected: dict
+) -> None:
     """Test Description Parser."""
-    with Path("tests/DeviceDescription.xml").open() as file:
+    with description_path.open() as file:
         description_file = file.read()
-    with Path("tests/FeatureMapping.xml").open() as file:
+    with feature_path.open() as file:
         feature_file = file.read()
 
     paresd_description = parse_device_description(description_file, feature_file)
     paresd_description = json.loads(json.dumps(paresd_description))
 
-    assert paresd_description == REFERENCE_DISCRIPTION
+    assert paresd_description == expected
