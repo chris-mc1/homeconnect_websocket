@@ -132,8 +132,23 @@ def parse_device_description(
         feature_mapping_xml (str | TextIO): Feature mapping XML-File
 
     """
-    device_description = xmltodict.parse(device_description_xml)["device"]
-    feature_mapping = xmltodict.parse(feature_mapping_xml)["featureMappingFile"]
+    device_description = xmltodict.parse(
+        device_description_xml,
+        force_list=(
+            "option",
+            "status",
+            "setting",
+            "event",
+            "command",
+            "option",
+            "program",
+        ),
+    )["device"]
+
+    feature_mapping = xmltodict.parse(
+        feature_mapping_xml,
+        force_list=("feature", "error", "enumDescription", "enumMember"),
+    )["featureMappingFile"]
 
     features = parse_feature_mapping(feature_mapping)
 
