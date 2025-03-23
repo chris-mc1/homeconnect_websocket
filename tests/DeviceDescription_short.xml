@@ -10,34 +10,55 @@
             <deviceType>Application</deviceType>
         </pairableDeviceTypes>
     </description>
-    <statusList access="read" available="true" uid="0102">
-        <status access="read" available="true" refCID="01" refDID="00" uid="0005" />
+    <statusList access="read" available="true" uid="0001">
+        <status access="read" available="true" refCID="01" refDID="00" uid="1001" />
+        <statusList access="read" available="true" uid="0002">
+            <status access="read" available="true" enumerationType="3002" refCID="03" refDID="00" uid="1002" />
+        </statusList>
     </statusList>
-    <settingList access="readWrite" available="true" uid="0103">
-        <setting access="readWrite" available="true" refCID="01" max="10" min="0" stepSize="1" initValue="1" default="0" refDID="00" uid="0003" passwordProtected="false" notifyOnChange="false" />
+    <settingList access="readWrite" available="true" uid="0003">
+        <setting access="readWrite" available="true" refCID="01" uid="1005" max="10" min="0" stepSize="1" initValue="1" default="0" refDID="00" passwordProtected="false" notifyOnChange="false" />
+        <settingList access="readWrite" available="true" uid="0004">
+            <setting access="readWrite" available="true" refCID="01" refDID="00" uid="1006" />
+        </settingList>
     </settingList>
-    <eventList uid="0104">
-        <event enumerationType="0001" handling="acknowledge" level="hint" refCID="03" refDID="80"
-            uid="0015" />
+    <eventList uid="0005">
+        <event enumerationType="3001" handling="acknowledge" level="hint" refCID="03" refDID="80" uid="1009" />
+        <eventList uid="0006">
+            <event enumerationType="3001" handling="acknowledge" level="hint" refCID="03" refDID="80" uid="100A" />
+        </eventList>
     </eventList>
-    <commandList access="writeOnly" available="true" uid="0105">
-        <command access="writeOnly" available="true" refCID="01" refDID="00" uid="0001" />
+    <commandList access="writeOnly" available="true" uid="0007">
+        <command access="writeOnly" available="true" refCID="01" refDID="00" uid="100D" />
+        <commandList access="writeOnly" available="true" uid="0008">
+            <command access="writeOnly" available="true" refCID="01" refDID="00" uid="100E" />
+        </commandList>
     </commandList>
-    <optionList access="readWrite" available="true" uid="0106">
-        <option access="read" available="true" refCID="11" refDID="A0" uid="021E" liveUpdate="true" />
+    <optionList access="readWrite" available="true" uid="0009">
+        <option access="read" available="true" refCID="11" refDID="A0" uid="1011" liveUpdate="true" />
+        <optionList access="readWrite" available="true" uid="000A">
+            <option access="read" available="true" refCID="10" refDID="A0" uid="1012" />
+        </optionList>
     </optionList>
-    <programGroup available="true" uid="0107">
-        <program available="true" execution="selectOnly" uid="2000">
-            <option access="readWrite" available="true" liveUpdate="false" default="true" refUID="021E" />
+    <programGroup available="true" uid="000B">
+        <program available="true" execution="selectOnly" uid="1015">
+            <option access="readWrite" available="true" liveUpdate="false" default="true" refUID="1011" />
         </program>
+        <programGroup available="true" uid="000C">
+            <program available="true" execution="selectOnly" uid="1016">
+                <option access="readWrite" available="true" liveUpdate="false" default="true" refUID="1011" />
+            </program>
+        </programGroup>
     </programGroup>
 
-    <activeProgram access="readWrite" validate="true" uid="0100" />
-    <selectedProgram access="readWrite" fullOptionSet="false" uid="0101" />
-    <protectionPort access="readWrite" available="true" uid="0102" />
+    <activeProgram access="readWrite" validate="true" uid="1019" />
+    <selectedProgram access="readWrite" fullOptionSet="false" uid="101A" />
+    <protectionPort access="readWrite" available="true" uid="101B" />
     <enumerationTypeList>
-        <enumerationType enid="0001">
+        <enumerationType enid="3001">
             <enumeration value="0" />
+            <enumeration value="1" />
+            <enumeration value="2" />
         </enumerationType>
     </enumerationTypeList>
 </device>

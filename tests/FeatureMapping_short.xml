@@ -1,22 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <featureMappingFile>
   <featureDescription>
-    <feature refUID="0005">Status.1</feature>
-    <feature refUID="0003">Setting.1</feature>
-    <feature refUID="0015">Event.1</feature>
-    <feature refUID="0001">Command.1</feature>
-    <feature refUID="021E">Option.1</feature>
-    <feature refUID="2000">Program.1</feature>
-    <feature refUID="0100">ActiveProgram</feature>
-    <feature refUID="0101">SelectedProgram</feature>
-    <feature refUID="0102">ProtectionPort</feature>
+    <feature refUID="1001">Status.1</feature>
+    <feature refUID="1002">Status.2</feature>
+    <feature refUID="1005">Setting.1</feature>
+    <feature refUID="1006">Setting.2</feature>
+    <feature refUID="1009">Event.1</feature>
+    <feature refUID="100A">Event.2</feature>
+    <feature refUID="100D">Command.1</feature>
+    <feature refUID="100E">Command.2</feature>
+    <feature refUID="1011">Option.1</feature>
+    <feature refUID="1012">Option.2</feature>
+    <feature refUID="1015">Program.1</feature>
+    <feature refUID="1016">Program.2</feature>
+    <feature refUID="1019">ActiveProgram</feature>
+    <feature refUID="101A">SelectedProgram</feature>
+    <feature refUID="101B">ProtectionPort</feature>
   </featureDescription>
   <errorDescription>
-    <error refEID="00C8">Error.1</error>
+    <error refEID="2001">Error.1</error>
+    <error refEID="2002">Error.2</error>
   </errorDescription>
   <enumDescriptionList>
-    <enumDescription refENID="0001" enumKey="EventState">
+    <enumDescription refENID="3001" enumKey="EventState">
       <enumMember refValue="0">Off</enumMember>
+      <enumMember refValue="1">Present</enumMember>
+      <enumMember refValue="2">Confirmed</enumMember>
+    </enumDescription>
+    <enumDescription refENID="3002" enumKey="EnumType.1">
+      <enumMember refValue="0">Open</enumMember>
+      <enumMember refValue="1">Closed</enumMember>
     </enumDescription>
   </enumDescriptionList>
 </featureMappingFile>
