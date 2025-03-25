@@ -98,6 +98,8 @@ class HomeAppliance:
 
     async def _message_handler(self, message: Message) -> None:
         """Handel received messages."""
+        if message.data is None:
+            return
         if message.action == Action.NOTIFY:
             if message.resource in ["/ro/descriptionChange", "/ro/values"]:
                 await self._update_entities(message.data)
