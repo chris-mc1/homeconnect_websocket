@@ -105,6 +105,7 @@ def parse_element(
                 element_out["protocolType"] = DESCRIPTION_PROTOCOL_TYPES[
                     int(attr_value, base=16)
                 ]
+                element_out["refCID"] = int(attr_value, base=16)
             elif attr_name == "@enumerationType":
                 element_out["enumeration"] = features["enumeration"][
                     int(attr_value, base=16)
@@ -123,7 +124,7 @@ def parse_element(
             elif attr_name == "option":
                 element_out["options"] = parse_options(xml_description["option"])
             elif attr_name == "@refDID":
-                continue
+                element_out["refDID"] = int(attr_value, base=16)
             else:
                 element_out[attr_name.strip("@")] = attr_value
         except (KeyError, ValueError, TypeError) as exc:

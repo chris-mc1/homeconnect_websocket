@@ -25,6 +25,8 @@ REFERENCE_DISCRIPTION = {
             "protocolType": "Boolean",
             "available": True,
             "access": "read",
+            "refCID": 1,
+            "refDID": 0,
         },
         {
             "uid": 4098,
@@ -34,6 +36,8 @@ REFERENCE_DISCRIPTION = {
             "enumeration": {"0": "Open", "1": "Closed"},
             "available": True,
             "access": "read",
+            "refCID": 3,
+            "refDID": 128,
         },
         {
             "uid": 4099,
@@ -42,6 +46,8 @@ REFERENCE_DISCRIPTION = {
             "protocolType": "Boolean",
             "available": True,
             "access": "read",
+            "refCID": 1,
+            "refDID": 0,
         },
         {
             "uid": 4100,
@@ -51,6 +57,8 @@ REFERENCE_DISCRIPTION = {
             "enumeration": {"0": "Open", "1": "Closed"},
             "available": True,
             "access": "read",
+            "refCID": 3,
+            "refDID": 128,
         },
     ],
     "setting": [
@@ -68,6 +76,8 @@ REFERENCE_DISCRIPTION = {
             "default": "0",
             "passwordProtected": False,
             "notifyOnChange": False,
+            "refCID": 1,
+            "refDID": 0,
         },
         {
             "uid": 4102,
@@ -76,6 +86,8 @@ REFERENCE_DISCRIPTION = {
             "protocolType": "Boolean",
             "available": True,
             "access": "readwrite",
+            "refCID": 1,
+            "refDID": 0,
         },
         {
             "uid": 4103,
@@ -91,6 +103,8 @@ REFERENCE_DISCRIPTION = {
             "default": "0",
             "passwordProtected": False,
             "notifyOnChange": False,
+            "refCID": 1,
+            "refDID": 0,
         },
         {
             "uid": 4104,
@@ -99,6 +113,8 @@ REFERENCE_DISCRIPTION = {
             "protocolType": "Boolean",
             "available": True,
             "access": "readwrite",
+            "refCID": 1,
+            "refDID": 0,
         },
     ],
     "event": [
@@ -110,6 +126,8 @@ REFERENCE_DISCRIPTION = {
             "enumeration": {"0": "Off", "1": "Present", "2": "Confirmed"},
             "handling": "acknowledge",
             "level": "hint",
+            "refCID": 3,
+            "refDID": 128,
         },
         {
             "uid": 4106,
@@ -119,6 +137,8 @@ REFERENCE_DISCRIPTION = {
             "enumeration": {"0": "Off", "1": "Present", "2": "Confirmed"},
             "handling": "acknowledge",
             "level": "hint",
+            "refCID": 3,
+            "refDID": 128,
         },
         {
             "uid": 4107,
@@ -128,6 +148,8 @@ REFERENCE_DISCRIPTION = {
             "enumeration": {"0": "Off", "1": "Present", "2": "Confirmed"},
             "handling": "acknowledge",
             "level": "hint",
+            "refCID": 3,
+            "refDID": 128,
         },
         {
             "uid": 4108,
@@ -137,6 +159,8 @@ REFERENCE_DISCRIPTION = {
             "enumeration": {"0": "Off", "1": "Present", "2": "Confirmed"},
             "handling": "acknowledge",
             "level": "hint",
+            "refCID": 3,
+            "refDID": 128,
         },
     ],
     "command": [
@@ -147,6 +171,8 @@ REFERENCE_DISCRIPTION = {
             "protocolType": "Boolean",
             "available": True,
             "access": "writeonly",
+            "refCID": 1,
+            "refDID": 0,
         },
         {
             "uid": 4110,
@@ -155,6 +181,8 @@ REFERENCE_DISCRIPTION = {
             "protocolType": "Boolean",
             "available": True,
             "access": "writeonly",
+            "refCID": 1,
+            "refDID": 0,
         },
         {
             "uid": 4111,
@@ -163,6 +191,8 @@ REFERENCE_DISCRIPTION = {
             "protocolType": "Boolean",
             "available": True,
             "access": "writeonly",
+            "refCID": 1,
+            "refDID": 0,
         },
         {
             "uid": 4112,
@@ -171,6 +201,8 @@ REFERENCE_DISCRIPTION = {
             "protocolType": "Boolean",
             "available": True,
             "access": "writeonly",
+            "refCID": 1,
+            "refDID": 0,
         },
     ],
     "option": [
@@ -182,6 +214,8 @@ REFERENCE_DISCRIPTION = {
             "available": True,
             "access": "read",
             "liveUpdate": True,
+            "refCID": 17,
+            "refDID": 160,
         },
         {
             "uid": 4114,
@@ -190,6 +224,8 @@ REFERENCE_DISCRIPTION = {
             "protocolType": "Integer",
             "available": True,
             "access": "read",
+            "refCID": 16,
+            "refDID": 130,
         },
         {
             "uid": 4115,
@@ -199,6 +235,8 @@ REFERENCE_DISCRIPTION = {
             "available": True,
             "access": "read",
             "liveUpdate": True,
+            "refCID": 17,
+            "refDID": 160,
         },
         {
             "uid": 4116,
@@ -207,6 +245,8 @@ REFERENCE_DISCRIPTION = {
             "protocolType": "Integer",
             "available": True,
             "access": "read",
+            "refCID": 16,
+            "refDID": 130,
         },
     ],
     "program": [
@@ -329,6 +369,8 @@ REFERENCE_DISCRIPTION_SHORT = {
             "protocolType": "Boolean",
             "available": True,
             "access": "read",
+            "refCID": 1,
+            "refDID": 0,
         },
         {
             "uid": 4098,
@@ -338,6 +380,8 @@ REFERENCE_DISCRIPTION_SHORT = {
             "enumeration": {"0": "Open", "1": "Closed"},
             "available": True,
             "access": "read",
+            "refCID": 3,
+            "refDID": 0,
         },
     ],
     "setting": [
@@ -355,6 +399,8 @@ REFERENCE_DISCRIPTION_SHORT = {
             "default": "0",
             "passwordProtected": False,
             "notifyOnChange": False,
+            "refCID": 1,
+            "refDID": 0,
         },
         {
             "uid": 4102,
@@ -363,6 +409,8 @@ REFERENCE_DISCRIPTION_SHORT = {
             "protocolType": "Boolean",
             "available": True,
             "access": "readwrite",
+            "refCID": 1,
+            "refDID": 0,
         },
     ],
     "event": [
@@ -374,6 +422,8 @@ REFERENCE_DISCRIPTION_SHORT = {
             "enumeration": {"0": "Off", "1": "Present", "2": "Confirmed"},
             "handling": "acknowledge",
             "level": "hint",
+            "refCID": 3,
+            "refDID": 128,
         },
         {
             "uid": 4106,
@@ -383,6 +433,8 @@ REFERENCE_DISCRIPTION_SHORT = {
             "enumeration": {"0": "Off", "1": "Present", "2": "Confirmed"},
             "handling": "acknowledge",
             "level": "hint",
+            "refCID": 3,
+            "refDID": 128,
         },
     ],
     "command": [
@@ -393,6 +445,8 @@ REFERENCE_DISCRIPTION_SHORT = {
             "protocolType": "Boolean",
             "available": True,
             "access": "writeonly",
+            "refCID": 1,
+            "refDID": 0,
         },
         {
             "uid": 4110,
@@ -401,6 +455,8 @@ REFERENCE_DISCRIPTION_SHORT = {
             "protocolType": "Boolean",
             "available": True,
             "access": "writeonly",
+            "refCID": 1,
+            "refDID": 0,
         },
     ],
     "option": [
@@ -412,6 +468,8 @@ REFERENCE_DISCRIPTION_SHORT = {
             "available": True,
             "access": "read",
             "liveUpdate": True,
+            "refCID": 17,
+            "refDID": 160,
         },
         {
             "uid": 4114,
@@ -420,6 +478,8 @@ REFERENCE_DISCRIPTION_SHORT = {
             "protocolType": "Integer",
             "available": True,
             "access": "read",
+            "refCID": 16,
+            "refDID": 160,
         },
     ],
     "program": [
