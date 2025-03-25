@@ -182,6 +182,13 @@ class HomeAppliance:
         rsp = await self.session.send_sync(msg)
         return rsp.data
 
+    def dump(self) -> dict:
+        """Dump Appliance state."""
+        return {
+            "entities": [entity.dump() for entity in self.entities.values()],
+            "service_versions": self.session.service_versions,
+        }
+
     @property
     def active_program(self) -> Program | None:
         """Return the current Active Program entity or None if no Program is active."""
