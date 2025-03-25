@@ -92,38 +92,44 @@ def parse_element(
 ) -> None:
     """Parse Element."""
     element_out = EntityDescription()
+
     for attr_name, attr_value in xml_description.items():
-        if attr_name == "@uid":
-            element_out["uid"] = int(attr_value, base=16)
-            element_out["name"] = features["feature"][
-                int(xml_description["@uid"], base=16)
-            ]
-        elif attr_name == "@refCID":
-            element_out["contentType"] = DESCRIPTION_TYPES[int(attr_value, base=16)]
-            element_out["protocolType"] = DESCRIPTION_PROTOCOL_TYPES[
-                int(attr_value, base=16)
-            ]
-        elif attr_name == "@enumerationType":
-            element_out["enumeration"] = features["enumeration"][
-                int(attr_value, base=16)
-            ]
-        elif attr_name in (
-            "@available",
-            "@notifyOnChange",
-            "@passwordProtected",
-            "@liveUpdate",
-            "@fullOptionSet",
-            "@validate",
-        ):
-            element_out[attr_name.strip("@")] = convert_bool(attr_value)
-        elif attr_name in ("@access", "@execution"):
-            element_out[attr_name.strip("@")] = attr_value.lower()
-        elif attr_name == "option":
-            element_out["options"] = parse_options(xml_description["option"])
-        elif attr_name == "@refDID":
-            continue
-        else:
-            element_out[attr_name.strip("@")] = attr_value
+        try:
+            if attr_name == "@uid":
+                element_out["uid"] = int(attr_value, base=16)
+                element_out["name"] = features["feature"][
+                    int(xml_description["@uid"], base=16)
+                ]
+            elif attr_name == "@refCID":
+                element_out["contentType"] = DESCRIPTION_TYPES[int(attr_value, base=16)]
+                element_out["protocolType"] = DESCRIPTION_PROTOCOL_TYPES[
+                    int(attr_value, base=16)
+                ]
+            elif attr_name == "@enumerationType":
+                element_out["enumeration"] = features["enumeration"][
+                    int(attr_value, base=16)
+                ]
+            elif attr_name in (
+                "@available",
+                "@notifyOnChange",
+                "@passwordProtected",
+                "@liveUpdate",
+                "@fullOptionSet",
+                "@validate",
+            ):
+                element_out[attr_name.strip("@")] = convert_bool(attr_value)
+            elif attr_name in ("@access", "@execution"):
+                element_out[attr_name.strip("@")] = attr_value.lower()
+            elif attr_name == "option":
+                element_out["options"] = parse_options(xml_description["option"])
+            elif attr_name == "@refDID":
+                continue
+            else:
+                element_out[attr_name.strip("@")] = attr_value
+        except (KeyError, ValueError, TypeError) as exc:
+            msg = f"Error while parsing '{attr_name}' in '{key}'"
+            raise ParserError(msg) from exc
+
     if is_list:
         description[key].append(element_out)
     else:
@@ -150,13 +156,17 @@ def parse_info(
     key: str,
 ) -> None:
     """Parse Device Info."""
-    description[key] = {
-        "brand": xml_description["brand"],
-        "type": xml_description["type"],
-        "model": xml_description["model"],
-        "version": int(xml_description["version"]),
-        "revision": int(xml_description["revision"]),
-    }
+    try:
+        description[key] = {
+            "brand": xml_description["brand"],
+            "type": xml_description["type"],
+            "model": xml_description["model"],
+            "version": int(xml_description["version"]),
+            "revision": int(xml_description["revision"]),
+        }
+    except (KeyError, ValueError, TypeError) as exc:
+        msg = "Error while parsing 'Device Info'"
+        raise ParserError(msg) from exc
 
 
 PARSERS = {
