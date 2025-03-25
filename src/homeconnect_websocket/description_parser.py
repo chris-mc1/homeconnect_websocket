@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TextIO
+from typing import TextIO, TypedDict
 from xml.parsers.expat import ExpatError
 
 import xmltodict
@@ -15,6 +15,14 @@ from .entities import (
     OptionDescription,
 )
 from .errors import ParserError
+
+
+class FeatureMap(TypedDict):
+    """Typing for Feature mapping."""
+
+    feature: dict[int, str]
+    error: dict[int, str]
+    enumeration: dict[int, dict[int, str]]
 
 
 def convert_bool(obj: str | bool) -> bool:
@@ -32,9 +40,9 @@ def convert_bool(obj: str | bool) -> bool:
     raise TypeError(msg, obj)
 
 
-def parse_feature_mapping(feature_mapping: dict) -> dict:
+def parse_feature_mapping(feature_mapping: dict) -> FeatureMap:
     """Parse Feature mapping."""
-    features = {"feature": {}, "error": {}, "enumeration": {}}
+    features = FeatureMap(feature={}, error={}, enumeration={})
 
     try:
         for feature in feature_mapping["featureDescription"]["feature"]:
@@ -85,7 +93,7 @@ def parse_options(element: list[dict] | dict) -> list[OptionDescription]:
 def parse_element(
     description: DeviceDescription,
     xml_description: dict,
-    features: dict,
+    features: FeatureMap,
     key: str,
     *,
     is_list: bool = True,
@@ -138,7 +146,7 @@ def parse_element(
 
 
 def parse_elements(
-    description: DeviceDescription, xml_description: list[dict], features: dict
+    description: DeviceDescription, xml_description: list[dict], features: FeatureMap
 ) -> None:
     """Parse list of Element."""
     for element, parser in PARSERS.items():
@@ -153,7 +161,7 @@ def parse_elements(
 def parse_info(
     description: DeviceDescription,
     xml_description: dict,
-    features: dict,  # noqa: ARG001
+    features: FeatureMap,  # noqa: ARG001
     key: str,
 ) -> None:
     """Parse Device Info."""
