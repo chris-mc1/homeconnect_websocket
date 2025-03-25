@@ -192,6 +192,16 @@ class Entity(ABC):
         """Unregister update callback."""
         self._callbacks.remove(callback)
 
+    def dump(self) -> dict:
+        """Dump Entity state."""
+        return {
+            "uid": self.uid,
+            "name": self.name,
+            "value": self.value,
+            "value_raw": self.value_raw,
+            "enum": self.enum,
+        }
+
     @property
     def uid(self) -> int:
         """Entity uid."""
@@ -289,6 +299,12 @@ class AccessMixin(Entity):
         """Current Access state."""
         return self._access
 
+    def dump(self) -> dict:
+        """Dump Entity state."""
+        state = super().dump()
+        state["access"] = self.access
+        return state
+
 
 class AvailableMixin(Entity):
     """Mixin for Entities with available attribute."""
@@ -320,6 +336,12 @@ class AvailableMixin(Entity):
     def available(self) -> bool | None:
         """Current Available state."""
         return self._available
+
+    def dump(self) -> dict:
+        """Dump Entity state."""
+        state = super().dump()
+        state["available"] = self.available
+        return state
 
 
 class MinMaxMixin(Entity):
@@ -363,6 +385,14 @@ class MinMaxMixin(Entity):
     def step(self) -> bool | None:
         """Minimum value."""
         return self._step
+
+    def dump(self) -> dict:
+        """Dump Entity state."""
+        state = super().dump()
+        state["min"] = self.min
+        state["max"] = self.max
+        state["step"] = self.step
+        return state
 
 
 class Status(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
