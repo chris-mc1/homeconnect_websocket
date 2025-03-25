@@ -213,3 +213,32 @@ async def test_access() -> None:
 
     await entity.set_value("Open")
     await entity.set_value_raw(1)
+
+
+@pytest.mark.asyncio
+async def test_dump() -> None:
+    """Test Entity state dump."""
+    description = EntityDescription(
+        uid=1,
+        name="Test_Entity",
+        available=False,
+        access=Access.READ,
+        min=0,
+        max=10,
+        stepSize=2,
+        enumeration={0: "a", 1: "b"},
+    )
+    entity = Status(description, AsyncMock())
+    await entity.update({"value": 1})
+    assert entity.dump() == {
+        "uid": 1,
+        "name": "Test_Entity",
+        "available": False,
+        "value": "b",
+        "value_raw": 1,
+        "enum": {0: "a", 1: "b"},
+        "access": "read",
+        "min": 0,
+        "max": 10,
+        "step": 2,
+    }

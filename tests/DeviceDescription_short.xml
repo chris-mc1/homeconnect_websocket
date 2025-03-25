@@ -12,61 +12,41 @@
     </description>
     <statusList access="read" available="true" uid="0001">
         <status access="read" available="true" refCID="01" refDID="00" uid="1001" />
-        <status access="read" available="true" enumerationType="3002" refCID="03" refDID="80" uid="1002" />
         <statusList access="read" available="true" uid="0002">
-            <status access="read" available="true" refCID="01" refDID="00" uid="1003" />
-            <status access="read" available="true" enumerationType="3002" refCID="03" refDID="80" uid="1004" />
+            <status access="read" available="true" enumerationType="3002" refCID="03" refDID="00" uid="1002" />
         </statusList>
     </statusList>
     <settingList access="readWrite" available="true" uid="0003">
         <setting access="readWrite" available="true" refCID="01" uid="1005" max="10" min="0" stepSize="1" initValue="1" default="0" refDID="00" passwordProtected="false" notifyOnChange="false" />
-        <setting access="readWrite" available="true" refCID="01" refDID="00" uid="1006" />
         <settingList access="readWrite" available="true" uid="0004">
-            <setting access="readWrite" available="true" refCID="01" uid="1007" max="10" min="0" stepSize="1" initValue="1" default="0" refDID="00" passwordProtected="false" notifyOnChange="false" />
-            <setting access="readWrite" available="true" refCID="01" refDID="00" uid="1008" />
+            <setting access="readWrite" available="true" refCID="01" refDID="00" uid="1006" />
         </settingList>
     </settingList>
     <eventList uid="0005">
         <event enumerationType="3001" handling="acknowledge" level="hint" refCID="03" refDID="80" uid="1009" />
-        <event enumerationType="3001" handling="acknowledge" level="hint" refCID="03" refDID="80" uid="100A" />
         <eventList uid="0006">
-            <event enumerationType="3001" handling="acknowledge" level="hint" refCID="03" refDID="80" uid="100B" />
-            <event enumerationType="3001" handling="acknowledge" level="hint" refCID="03" refDID="80" uid="100C" />
+            <event enumerationType="3001" handling="acknowledge" level="hint" refCID="03" refDID="80" uid="100A" />
         </eventList>
     </eventList>
     <commandList access="writeOnly" available="true" uid="0007">
         <command access="writeOnly" available="true" refCID="01" refDID="00" uid="100D" />
-        <command access="writeOnly" available="true" refCID="01" refDID="00" uid="100E" />
         <commandList access="writeOnly" available="true" uid="0008">
-            <command access="writeOnly" available="true" refCID="01" refDID="00" uid="100F" />
-            <command access="writeOnly" available="true" refCID="01" refDID="00" uid="1010" />
+            <command access="writeOnly" available="true" refCID="01" refDID="00" uid="100E" />
         </commandList>
     </commandList>
     <optionList access="readWrite" available="true" uid="0009">
         <option access="read" available="true" refCID="11" refDID="A0" uid="1011" liveUpdate="true" />
-        <option access="read" available="true" refCID="10" refDID="82" uid="1012" />
         <optionList access="readWrite" available="true" uid="000A">
-            <option access="read" available="true" refCID="11" refDID="A0" uid="1013" liveUpdate="true" />
-            <option access="read" available="true" refCID="10" refDID="82" uid="1014" />
+            <option access="read" available="true" refCID="10" refDID="A0" uid="1012" />
         </optionList>
     </optionList>
     <programGroup available="true" uid="000B">
         <program available="true" execution="selectOnly" uid="1015">
             <option access="readWrite" available="true" liveUpdate="false" default="true" refUID="1011" />
-            <option access="readWrite" available="true" liveUpdate="true" refUID="1012" />
-        </program>
-        <program available="true" uid="1016">
-            <option access="readWrite" available="true" liveUpdate="false" default="true" refUID="1011" />
-            <option access="readWrite" available="true" liveUpdate="true" refUID="1012" />
         </program>
         <programGroup available="true" uid="000C">
-            <program available="true" execution="selectOnly" uid="1017">
+            <program available="true" execution="selectOnly" uid="1016">
                 <option access="readWrite" available="true" liveUpdate="false" default="true" refUID="1011" />
-                <option access="readWrite" available="true" liveUpdate="true" refUID="1012" />
-            </program>
-            <program available="true" uid="1018">
-                <option access="readWrite" available="true" liveUpdate="false" default="true" refUID="1011" />
-                <option access="readWrite" available="true" liveUpdate="true" refUID="1012" />
             </program>
         </programGroup>
     </programGroup>
@@ -79,10 +59,6 @@
             <enumeration value="0" />
             <enumeration value="1" />
             <enumeration value="2" />
-        </enumerationType>
-        <enumerationType enid="3002">
-            <enumeration value="0" />
-            <enumeration value="1" />
         </enumerationType>
     </enumerationTypeList>
 </device>

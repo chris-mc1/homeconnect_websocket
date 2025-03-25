@@ -111,8 +111,10 @@ class EntityDescription(TypedDict, total=False):
     execution: Execution
     fullOptionSet: bool
     validate: bool
-    contentType: str
+    refCID: int
+    refDID: int
     protocolType: str
+    contentType: str
 
 
 class DeviceDescription(TypedDict, total=False):
@@ -190,6 +192,16 @@ class Entity(ABC):
     def unregister_callback(self, callback: Callable[[Entity], Coroutine]) -> None:
         """Unregister update callback."""
         self._callbacks.remove(callback)
+
+    def dump(self) -> dict:
+        """Dump Entity state."""
+        return {
+            "uid": self.uid,
+            "name": self.name,
+            "value": self.value,
+            "value_raw": self.value_raw,
+            "enum": self.enum,
+        }
 
     @property
     def uid(self) -> int:
@@ -284,6 +296,12 @@ class AccessMixin(Entity):
             raise AccessError(msg)
         await super().set_value_raw(value_raw)
 
+    def dump(self) -> dict:
+        """Dump Entity state."""
+        state = super().dump()
+        state["access"] = self.access
+        return state
+
 
 class AvailableMixin(Entity):
     """Mixin for Entities with available attribute."""
@@ -322,6 +340,12 @@ class AvailableMixin(Entity):
             msg = "Not Available"
             raise AccessError(msg)
         await super().set_value_raw(value_raw)
+
+    def dump(self) -> dict:
+        """Dump Entity state."""
+        state = super().dump()
+        state["available"] = self.available
+        return state
 
 
 class MinMaxMixin(Entity):
@@ -365,6 +389,14 @@ class MinMaxMixin(Entity):
     def step(self) -> float | None:
         """Minimum value."""
         return self._step
+
+    def dump(self) -> dict:
+        """Dump Entity state."""
+        state = super().dump()
+        state["min"] = self.min
+        state["max"] = self.max
+        state["step"] = self.step
+        return state
 
 
 class Status(AccessMixin, AvailableMixin, MinMaxMixin, Entity):

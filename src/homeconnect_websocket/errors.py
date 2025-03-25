@@ -28,3 +28,7 @@ class AccessError(HomeConnectError):
 
 class NotConnectedError(HomeConnectError):
     """Client is not Connected."""
+
+
+class ParserError(HomeConnectError):
+    """Description Parser Error."""
