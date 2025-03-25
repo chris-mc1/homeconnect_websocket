@@ -2,17 +2,27 @@
 
 from __future__ import annotations
 
-from typing import Any, TextIO
+from functools import partial
+from typing import TextIO, TypedDict
+from xml.parsers.expat import ExpatError
 
 import xmltodict
 
 from .const import DESCRIPTION_PROTOCOL_TYPES, DESCRIPTION_TYPES
 from .entities import (
     DeviceDescription,
-    DeviceInfo,
     EntityDescription,
     OptionDescription,
 )
+from .errors import ParserError
+
+
+class FeatureMap(TypedDict):
+    """Typing for Feature mapping."""
+
+    feature: dict[int, str]
+    error: dict[int, str]
+    enumeration: dict[int, dict[int, str]]
 
 
 def convert_bool(obj: str | bool) -> bool:
@@ -30,26 +40,38 @@ def convert_bool(obj: str | bool) -> bool:
     raise TypeError(msg, obj)
 
 
-def parse_feature_mapping(feature_mapping: dict) -> dict:
+def parse_feature_mapping(feature_mapping: dict) -> FeatureMap:
     """Parse Feature mapping."""
-    features = {"feature": {}, "error": {}, "enumeration": {}}
+    features = FeatureMap(feature={}, error={}, enumeration={})
 
-    for feature in feature_mapping["featureDescription"]["feature"]:
-        features["feature"][int(feature["@refUID"], base=16)] = feature["#text"]
+    try:
+        for feature in feature_mapping["featureDescription"]["feature"]:
+            features["feature"][int(feature["@refUID"], base=16)] = feature["#text"]
+    except (KeyError, ValueError, TypeError) as exc:
+        msg = "Error while parsing on 'featureDescription'"
+        raise ParserError(msg) from exc
 
-    for error in feature_mapping["errorDescription"]["error"]:
-        features["error"][int(error["@refEID"], base=16)] = error["#text"]
+    try:
+        for error in feature_mapping["errorDescription"]["error"]:
+            features["error"][int(error["@refEID"], base=16)] = error["#text"]
+    except (KeyError, ValueError, TypeError) as exc:
+        msg = "Error while parsing on 'errorDescription'"
+        raise ParserError(msg) from exc
 
-    for enum in feature_mapping["enumDescriptionList"]["enumDescription"]:
-        temp_enum = {}
-        for key in enum["enumMember"]:
-            temp_enum[int(key["@refValue"])] = key["#text"]
-        features["enumeration"][int(enum["@refENID"], base=16)] = temp_enum
+    try:
+        for enum in feature_mapping["enumDescriptionList"]["enumDescription"]:
+            temp_enum = {}
+            for key in enum["enumMember"]:
+                temp_enum[int(key["@refValue"])] = key["#text"]
+            features["enumeration"][int(enum["@refENID"], base=16)] = temp_enum
+    except (KeyError, ValueError, TypeError) as exc:
+        msg = "Error while parsing on 'enumDescriptionList'"
+        raise ParserError(msg) from exc
 
     return features
 
 
-def parse_options(element: dict) -> list[OptionDescription]:
+def parse_options(element: list[dict] | dict) -> list[OptionDescription]:
     """Parse Programs Options."""
     options = []
     for option in element:
@@ -68,56 +90,118 @@ def parse_options(element: dict) -> list[OptionDescription]:
     return options
 
 
-def parse_element(element: dict[str, Any], features: dict) -> EntityDescription:
+def parse_element(
+    description: DeviceDescription,
+    xml_description: dict,
+    features: FeatureMap,
+    key: str,
+    *,
+    is_list: bool = True,
+) -> None:
     """Parse Element."""
     element_out = EntityDescription()
-    for attr_name, attr_value in element.items():
-        if attr_name == "@uid":
-            element_out["uid"] = int(attr_value, base=16)
-            element_out["name"] = features["feature"][int(element["@uid"], base=16)]
-        elif attr_name == "@refCID":
-            element_out["contentType"] = DESCRIPTION_TYPES[int(attr_value, base=16)]
-            element_out["protocolType"] = DESCRIPTION_PROTOCOL_TYPES[
-                int(attr_value, base=16)
-            ]
-        elif attr_name == "@enumerationType":
-            element_out["enumeration"] = features["enumeration"][
-                int(attr_value, base=16)
-            ]
-        elif attr_name in (
-            "@available",
-            "@notifyOnChange",
-            "@passwordProtected",
-            "@liveUpdate",
-            "@fullOptionSet",
-            "@validate",
-        ):
-            element_out[attr_name.strip("@")] = convert_bool(attr_value)
-        elif attr_name in ("@access", "@execution"):
-            element_out[attr_name.strip("@")] = attr_value.lower()
-        elif attr_name == "option":
-            element_out["options"] = parse_options(element["option"])
-        elif attr_name == "@refDID":
-            continue
-        else:
-            element_out[attr_name.strip("@")] = attr_value
-    return element_out
+
+    for attr_name, attr_value in xml_description.items():
+        try:
+            if attr_name == "@uid":
+                element_out["uid"] = int(attr_value, base=16)
+                element_out["name"] = features["feature"][
+                    int(xml_description["@uid"], base=16)
+                ]
+            elif attr_name == "@refCID":
+                element_out["contentType"] = DESCRIPTION_TYPES[int(attr_value, base=16)]
+                element_out["protocolType"] = DESCRIPTION_PROTOCOL_TYPES[
+                    int(attr_value, base=16)
+                ]
+                element_out["refCID"] = int(attr_value, base=16)
+            elif attr_name == "@enumerationType":
+                element_out["enumeration"] = features["enumeration"][
+                    int(attr_value, base=16)
+                ]
+            elif attr_name in (
+                "@available",
+                "@notifyOnChange",
+                "@passwordProtected",
+                "@liveUpdate",
+                "@fullOptionSet",
+                "@validate",
+            ):
+                element_out[attr_name.strip("@")] = convert_bool(attr_value)
+            elif attr_name in ("@access", "@execution"):
+                element_out[attr_name.strip("@")] = attr_value.lower()
+            elif attr_name == "option":
+                element_out["options"] = parse_options(xml_description["option"])
+            elif attr_name == "@refDID":
+                element_out["refDID"] = int(attr_value, base=16)
+            else:
+                element_out[attr_name.strip("@")] = attr_value
+        except (KeyError, ValueError, TypeError) as exc:
+            msg = f"Error while parsing '{attr_name}' in '{key}'"
+            raise ParserError(msg) from exc
+
+    if is_list:
+        description[key].append(element_out)
+    else:
+        description[key] = element_out
 
 
-def parse_elements(description_list: dict, features: dict) -> list[EntityDescription]:
+def parse_elements(
+    description: DeviceDescription, xml_description: list[dict], features: FeatureMap
+) -> None:
     """Parse list of Element."""
-    return [parse_element(element, features) for element in description_list]
+    for element, parser in PARSERS.items():
+        if element in xml_description:
+            description_elements = xml_description[element]
+            if not isinstance(description_elements, list):
+                description_elements = [description_elements]
+            for description_element in description_elements:
+                parser["parser"](description, description_element, features)
 
 
-def parse_info(device_description: dict) -> DeviceInfo:
+def parse_info(
+    description: DeviceDescription,
+    xml_description: dict,
+    features: FeatureMap,  # noqa: ARG001
+    key: str,
+) -> None:
     """Parse Device Info."""
-    return {
-        "brand": device_description["description"]["brand"],
-        "type": device_description["description"]["type"],
-        "model": device_description["description"]["model"],
-        "version": int(device_description["description"]["version"]),
-        "revision": int(device_description["description"]["revision"]),
-    }
+    try:
+        description[key] = {
+            "brand": xml_description["brand"],
+            "type": xml_description["type"],
+            "model": xml_description["model"],
+            "version": int(xml_description["version"]),
+            "revision": int(xml_description["revision"]),
+        }
+    except (KeyError, ValueError, TypeError) as exc:
+        msg = "Error while parsing 'Device Info'"
+        raise ParserError(msg) from exc
+
+
+PARSERS = {
+    "description": {"parser": partial(parse_info, key="info")},
+    "option": {"parser": partial(parse_element, key="option")},
+    "optionList": {"parser": parse_elements},
+    "status": {"parser": partial(parse_element, key="status")},
+    "statusList": {"parser": parse_elements, "key": "status"},
+    "setting": {"parser": partial(parse_element, key="setting")},
+    "settingList": {"parser": parse_elements, "key": "setting"},
+    "event": {"parser": partial(parse_element, key="event")},
+    "eventList": {"parser": parse_elements},
+    "command": {"parser": partial(parse_element, key="command")},
+    "commandList": {"parser": parse_elements},
+    "program": {"parser": partial(parse_element, key="program")},
+    "programGroup": {"parser": parse_elements},
+    "activeProgram": {
+        "parser": partial(parse_element, key="activeProgram", is_list=False)
+    },
+    "selectedProgram": {
+        "parser": partial(parse_element, key="selectedProgram", is_list=False)
+    },
+    "protectionPort": {
+        "parser": partial(parse_element, key="protectionPort", is_list=False)
+    },
+}
 
 
 def parse_device_description(
@@ -132,49 +216,42 @@ def parse_device_description(
         feature_mapping_xml (str | TextIO): Feature mapping XML-File
 
     """
-    device_description = xmltodict.parse(device_description_xml)["device"]
-    feature_mapping = xmltodict.parse(feature_mapping_xml)["featureMappingFile"]
+    try:
+        xml_description = xmltodict.parse(
+            device_description_xml,
+            force_list=(
+                "option",
+                "optionList",
+                "status",
+                "statusList",
+                "setting",
+                "settingList",
+                "event",
+                "eventList",
+                "command",
+                "commandList",
+                "program",
+                "programGroup",
+            ),
+        )["device"]
+    except ExpatError as exc:
+        msg = "Error while parsing Device Description XML-File"
+        raise ParserError(msg) from exc
+
+    try:
+        feature_mapping = xmltodict.parse(
+            feature_mapping_xml,
+            force_list=("feature", "error", "enumDescription", "enumMember"),
+        )["featureMappingFile"]
+    except ExpatError as exc:
+        msg = "Error while parsing Feature Mapping XML-File"
+        raise ParserError(msg) from exc
 
     features = parse_feature_mapping(feature_mapping)
 
-    description = DeviceDescription()
-    if "description" in device_description:
-        description["info"] = parse_info(device_description)
-    if "statusList" in device_description:
-        description["status"] = parse_elements(
-            device_description["statusList"]["status"], features
-        )
-    if "settingList" in device_description:
-        description["setting"] = parse_elements(
-            device_description["settingList"]["setting"], features
-        )
-    if "eventList" in device_description:
-        description["event"] = parse_elements(
-            device_description["eventList"]["event"], features
-        )
-    if "commandList" in device_description:
-        description["command"] = parse_elements(
-            device_description["commandList"]["command"], features
-        )
-    if "optionList" in device_description:
-        description["option"] = parse_elements(
-            device_description["optionList"]["option"], features
-        )
-    if "programGroup" in device_description:
-        description["program"] = parse_elements(
-            device_description["programGroup"]["program"], features
-        )
-    if "activeProgram" in device_description:
-        description["activeProgram"] = parse_element(
-            device_description["activeProgram"], features
-        )
-    if "selectedProgram" in device_description:
-        description["selectedProgram"] = parse_element(
-            device_description["selectedProgram"], features
-        )
-    if "protectionPort" in device_description:
-        description["protectionPort"] = parse_element(
-            device_description["protectionPort"], features
-        )
+    description = DeviceDescription(
+        status=[], option=[], setting=[], event=[], command=[], program=[]
+    )
+    parse_elements(description, xml_description, features)
 
     return description

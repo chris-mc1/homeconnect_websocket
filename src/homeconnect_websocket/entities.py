@@ -111,6 +111,10 @@ class EntityDescription(TypedDict):
     execution: Execution
     fullOptionSet: bool
     validate: bool
+    refCID: int
+    refDID: int
+    protocolType: str
+    contentType: str
 
 
 class DeviceDescription(TypedDict):
