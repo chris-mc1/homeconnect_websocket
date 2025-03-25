@@ -21,9 +21,6 @@ ignore = [
 [lint.flake8-pytest-style]
 fixture-parentheses = false
 
-[lint.pyupgrade]
-keep-runtime-typing = true
-
 [lint.mccabe]
 max-complexity = 25
 

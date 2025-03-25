@@ -10,7 +10,7 @@ from .errors import AccessError
 from .message import Action, Message
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+    from collections.abc import Callable, Coroutine
 
     from .appliance import HomeAppliance
 
@@ -54,7 +54,7 @@ class Execution(StrEnum):
     SELECT_AND_START = "selectandstart"
 
 
-class DeviceInfo(TypedDict):
+class DeviceInfo(TypedDict, total=False):
     """Typing for Device info."""
 
     brand: str
@@ -77,7 +77,7 @@ class DeviceInfo(TypedDict):
     shipSki: str
 
 
-class OptionDescription(TypedDict):
+class OptionDescription(TypedDict, total=False):
     """Typing for Option Description."""
 
     access: Access
@@ -87,7 +87,7 @@ class OptionDescription(TypedDict):
     default: Any
 
 
-class EntityDescription(TypedDict):
+class EntityDescription(TypedDict, total=False):
     """Typing for Entity Description."""
 
     uid: int
@@ -111,9 +111,11 @@ class EntityDescription(TypedDict):
     execution: Execution
     fullOptionSet: bool
     validate: bool
+    contentType: str
+    protocolType: str
 
 
-class DeviceDescription(TypedDict):
+class DeviceDescription(TypedDict, total=False):
     """Typing for DeviceDescription."""
 
     info: DeviceInfo
@@ -125,6 +127,7 @@ class DeviceDescription(TypedDict):
     program: list[EntityDescription]
     activeProgram: EntityDescription
     selectedProgram: EntityDescription
+    protectionPort: EntityDescription
 
 
 class Entity(ABC):
@@ -133,10 +136,10 @@ class Entity(ABC):
     _appliance: HomeAppliance
     _uid: int
     _name: str
-    _callbacks: set[Callable[[Entity], None | Awaitable[None]]]
+    _callbacks: set[Callable[[Entity], Coroutine]]
     _value: Any | None = None
-    _enumeration: dict = None
-    _rev_enumeration: dict = None
+    _enumeration: dict | None = None
+    _rev_enumeration: dict
 
     def __init__(
         self, description: EntityDescription, appliance: HomeAppliance
@@ -179,16 +182,12 @@ class Entity(ABC):
             )
         self._tasks.discard(task)
 
-    def register_callback(
-        self, callback: Callable[[Entity], None | Awaitable[None]]
-    ) -> None:
+    def register_callback(self, callback: Callable[[Entity], Coroutine]) -> None:
         """Register update callback."""
         if callback not in self._callbacks:
             self._callbacks.add(callback)
 
-    def unregister_callback(
-        self, callback: Callable[[Entity], None | Awaitable[None]]
-    ) -> None:
+    def unregister_callback(self, callback: Callable[[Entity], Coroutine]) -> None:
         """Unregister update callback."""
         self._callbacks.remove(callback)
 
@@ -220,6 +219,9 @@ class Entity(ABC):
         if the Entity is an Enum entity the value will be resolve to the reference Value
         """
         if self._enumeration:
+            if value not in self._rev_enumeration:
+                msg = "Value not in Enum"
+                raise ValueError(msg)
             await self.set_value_raw(self._rev_enumeration[value])
         else:
             await self.set_value_raw(value)
@@ -231,20 +233,6 @@ class Entity(ABC):
 
     async def set_value_raw(self, value_raw: str | int | bool) -> None:
         """Set the raw Value."""
-        try:
-            if self._access not in [Access.READ_WRITE, Access.WRITE_ONLY]:
-                msg = "Not Writable"
-                raise AccessError(msg)
-        except AttributeError:
-            pass
-
-        try:
-            if not self._available:
-                msg = "Not Available"
-                raise AccessError(msg)
-        except AttributeError:
-            pass
-
         message = Message(
             resource="/ro/values",
             action=Action.POST,
@@ -261,7 +249,7 @@ class Entity(ABC):
 class AccessMixin(Entity):
     """Mixin for Entities with access attribute."""
 
-    _access: Access = None
+    _access: Access | None = None
 
     def __init__(
         self, description: EntityDescription, appliance: HomeAppliance
@@ -289,11 +277,18 @@ class AccessMixin(Entity):
         """Current Access state."""
         return self._access
 
+    async def set_value_raw(self, value_raw: str | int | bool) -> None:
+        """Set the raw Value."""
+        if self._access not in [Access.READ_WRITE, Access.WRITE_ONLY]:
+            msg = "Not Writable"
+            raise AccessError(msg)
+        await super().set_value_raw(value_raw)
+
 
 class AvailableMixin(Entity):
     """Mixin for Entities with available attribute."""
 
-    _available: bool = None
+    _available: bool | None = None
 
     def __init__(
         self, description: EntityDescription, appliance: HomeAppliance
@@ -321,13 +316,20 @@ class AvailableMixin(Entity):
         """Current Available state."""
         return self._available
 
+    async def set_value_raw(self, value_raw: str | int | bool) -> None:
+        """Set the raw Value."""
+        if not self._available:
+            msg = "Not Available"
+            raise AccessError(msg)
+        await super().set_value_raw(value_raw)
+
 
 class MinMaxMixin(Entity):
     """Mixin for Entities with available Min and Max values."""
 
-    _min: float = None
-    _max: float = None
-    _step: float = None
+    _min: float | None = None
+    _max: float | None = None
+    _step: float | None = None
 
     def __init__(
         self, description: EntityDescription, appliance: HomeAppliance
@@ -350,17 +352,17 @@ class MinMaxMixin(Entity):
         super().__init__(description, appliance)
 
     @property
-    def min(self) -> bool | None:
+    def min(self) -> float | None:
         """Minimum value."""
         return self._min
 
     @property
-    def max(self) -> bool | None:
+    def max(self) -> float | None:
         """Maximum value."""
         return self._max
 
     @property
-    def step(self) -> bool | None:
+    def step(self) -> float | None:
         """Minimum value."""
         return self._step
 
