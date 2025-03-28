@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from typing import TYPE_CHECKING
 
@@ -38,8 +39,10 @@ class HCSession:
     _response_events: dict[int, asyncio.Event]
     _send_lock: asyncio.Lock
     _socket: HCSocket = None
-    _connected: asyncio.Event
+    _recv_loop_event: asyncio.Event
+    _connected: bool = False
     _recv_task: asyncio.Task = None
+    _handshake_task: asyncio.Task = None
     _tasks: set[asyncio.Task]
     _ext_message_handler: Callable[[Message], None | Awaitable[None]] | None = None
 
@@ -71,7 +74,7 @@ class HCSession:
             "deviceName": app_name,
             "deviceID": app_id,
         }
-        self._connected = asyncio.Event()
+        self._recv_loop_event = asyncio.Event()
         self.handshake = True
         self._response_messages = {}
         self._response_events = {}
@@ -85,7 +88,7 @@ class HCSession:
     def connected(self) -> bool:
         """Is connected."""
         if self._socket:
-            return self._connected.is_set() and not self._socket.closed
+            return self._connected and not self._socket.closed
         return False
 
     async def connect(
@@ -119,24 +122,41 @@ class HCSession:
         try:
             await self._socket.connect()
             self._recv_task = asyncio.create_task(self._recv_loop())
-            await asyncio.wait_for(self._connected.wait(), timeout)
+            self._recv_task.add_done_callback(self._recv_loop_done_callback)
+            await asyncio.wait_for(self._recv_loop_event.wait(), timeout)
+            if not self._connected:
+                # loop event received, but not connected
+                if self._recv_task.done():
+                    # loop exited
+                    if task_exc := self._recv_task.exception():
+                        _LOGGER.exception("Receive loop Exception", exc_info=task_exc)
+                        raise task_exc
+                    _LOGGER.error("Receive loop exited unexpectedly")
+                elif self._handshake_task.done():
+                    # loop running, handshake eexited
+                    if task_exc := self._handshake_task.exception():
+                        _LOGGER.exception("Handshake Exception", exc_info=task_exc)
+                        raise task_exc
+                    _LOGGER.error("Handshake exited unexpectedly")
+
         except (aiohttp.ClientConnectionError, aiohttp.ClientConnectorSSLError):
             _LOGGER.exception("Error connecting to Appliance")
             raise
-        except TimeoutError as ex:
-            if not self._recv_task.done():
-                self._recv_task.cancel()
-            if task_exc := self._recv_task.exception():
-                _LOGGER.exception("Handshake Exception")
-                raise task_exc from ex
-
-            _LOGGER.exception("Handshake Timeout")
+        except TimeoutError:
+            if self._recv_task.cancel():
+                with contextlib.suppress(asyncio.CancelledError):
+                    await self._recv_task
+            if self._handshake_task.cancel():
+                with contextlib.suppress(asyncio.CancelledError):
+                    await self._handshake_task
+            _LOGGER.error("Connection Error")  # noqa: TRY400
             raise
 
     async def _reset(self) -> None:
         """Rest connction state."""
         self.service_versions.clear()
-        self._connected.clear()
+        self._recv_loop_event.clear()
+        self._connected = False
         self._response_messages.clear()
         # Set all response events
         async with self._response_lock:
@@ -167,7 +187,7 @@ class HCSession:
         """Handle recived message."""
         if message.resource == "/ei/initialValues":
             # connection reset/reconncted
-            if self._connected.is_set():
+            if self._recv_loop_event.is_set():
                 _LOGGER.info("Got init message while connected, resetting")
                 await self._reset()
             # set new sID, msgID
@@ -176,12 +196,12 @@ class HCSession:
             if self.handshake:
                 # start handshake
                 _LOGGER.info("Got init message, beginning handshake")
-                task = asyncio.create_task(self._handshake(message))
-                self._tasks.add(task)
-                task.add_done_callback(self._tasks.discard)
+                self._handshake_task = asyncio.create_task(self._handshake(message))
+                self._handshake_task.add_done_callback(self._recv_loop_done_callback)
             else:
                 _LOGGER.info("Connected, no handshake")
-                self._connected.set()
+                self._connected = True
+                self._recv_loop_event.set()
                 self._retry_count = 0
                 await self._call_ext_message_handler(message)
 
@@ -216,6 +236,9 @@ class HCSession:
             _LOGGER.exception("Exception in Session callback", exc_info=exc)
         self._tasks.discard(task)
 
+    def _recv_loop_done_callback(self, task: asyncio.Task) -> None:
+        self._recv_loop_event.set()
+
     async def _handshake(self, message_init: Message) -> None:
         try:
             # responde to init message
@@ -249,15 +272,19 @@ class HCSession:
             await self._call_ext_message_handler(response_mandatory_values)
 
             # handshake completed
-            self._connected.set()
+            self._connected = True
+            self._recv_loop_event.set()
             self._retry_count = 0
             _LOGGER.info("Handshake completed")
         except asyncio.CancelledError:
             _LOGGER.exception("Handshake cancelled")
+            raise
         except CodeResponsError:
             _LOGGER.exception("Received Code respons during Handshake")
+            raise
         except Exception:
             _LOGGER.exception("Unknown Exception during Handshake")
+            raise
 
     async def close(self) -> None:
         """Close connction."""
@@ -319,7 +346,7 @@ class HCSession:
             _LOGGER.warning("Timeout for message %s", send_message.msg_id)
             raise
         except KeyError:
-            if not self._connected.is_set():
+            if not self._connected:
                 raise NotConnectedError from None
         finally:
             async with self._response_lock:
@@ -327,11 +354,12 @@ class HCSession:
 
         if response_message.code:
             _LOGGER.warning(
-                "Received Code %s for Message %s",
+                "Received Code %s for Message %s, resource: %s",
                 response_message.code,
                 send_message.msg_id,
+                response_message.resource,
             )
-            raise CodeResponsError(response_message.code)
+            raise CodeResponsError(response_message.code, response_message.resource)
         return response_message
 
     async def send(self, message: Message) -> None:
