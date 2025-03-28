@@ -5,7 +5,7 @@ from typing import Final
 DEFAULT_HANDSHAKE_TIMEOUT: Final[int] = 60
 DEFAULT_SEND_TIMEOUT: Final[int] = 20
 MAX_CONNECT_TIMEOUT: Final[int] = 60
-TIMEOUT_INCREASE_FACTOR: Final[float] = 2.0
+TIMEOUT_INCREASE_FACTOR: Final[float] = 1.2
 
 # CID to types mapping for Description Parser
 DESCRIPTION_TYPES: Final = {
