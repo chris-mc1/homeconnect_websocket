@@ -15,6 +15,7 @@ class CodeResponsError(HomeConnectError):
         Args:
         ----
         code (int): Recived Code
+        resource (str): Recived resource
         *args (object): extra args
 
         """

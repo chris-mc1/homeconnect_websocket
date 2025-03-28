@@ -3,9 +3,12 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import re
+from base64 import urlsafe_b64encode
 from typing import TYPE_CHECKING
 
 import aiohttp
+from Crypto.Random import get_random_bytes
 
 from .const import (
     DEFAULT_HANDSHAKE_TIMEOUT,
@@ -236,7 +239,7 @@ class HCSession:
             _LOGGER.exception("Exception in Session callback", exc_info=exc)
         self._tasks.discard(task)
 
-    def _recv_loop_done_callback(self, task: asyncio.Task) -> None:
+    def _recv_loop_done_callback(self, _: asyncio.Task) -> None:
         self._recv_loop_event.set()
 
     async def _handshake(self, message_init: Message) -> None:
@@ -250,14 +253,41 @@ class HCSession:
             self.set_service_versions(response_services)
             await self._call_ext_message_handler(response_services)
 
+            token = urlsafe_b64encode(get_random_bytes(32)).decode("UTF-8")
+            token = re.sub(r"=", "", token)
+            message_authentication = Message(
+                resource="/ci/authentication", data={"nonce": token}
+            )
+            await self.send(message_authentication)
+
             # request device info
-            message_info = Message(resource="/iz/info")
-            response_info = await self.send_sync(message_info)
-            await self._call_ext_message_handler(response_info)
+            with contextlib.suppress(CodeResponsError):
+                message_info = Message(resource="/ci/info")
+                response_info = await self.send_sync(message_info)
+                await self._call_ext_message_handler(response_info)
+
+            with contextlib.suppress(CodeResponsError):
+                message_info = Message(resource="/iz/info")
+                response_info = await self.send_sync(message_info)
+                await self._call_ext_message_handler(response_info)
 
             # report device ready
             message_ready = Message(resource="/ei/deviceReady", action=Action.NOTIFY)
             await self.send(message_ready)
+
+            message_ready = Message(resource="/ni/info")
+            await self.send(message_ready)
+
+            # request mandatory values
+            message_mandatory_values = Message(resource="/ro/allMandatoryValues")
+            response_mandatory_values = await self.send_sync(message_mandatory_values)
+            await self._call_ext_message_handler(response_mandatory_values)
+
+            # request values
+            with contextlib.suppress(CodeResponsError):
+                message_values = Message(resource="/ro/values")
+                response_values = await self.send_sync(message_values)
+                await self._call_ext_message_handler(response_values)
 
             # request description changes
             message_description_changes = Message(resource="/ro/allDescriptionChanges")
@@ -265,11 +295,6 @@ class HCSession:
                 message_description_changes
             )
             await self._call_ext_message_handler(response_description_changes)
-
-            # request mandatory values
-            message_mandatory_values = Message(resource="/ro/allMandatoryValues")
-            response_mandatory_values = await self.send_sync(message_mandatory_values)
-            await self._call_ext_message_handler(response_mandatory_values)
 
             # handshake completed
             self._connected = True
