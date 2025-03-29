@@ -375,7 +375,8 @@ class HCSession:
                 raise NotConnectedError from None
         finally:
             async with self._response_lock:
-                self._response_events.pop(send_message.msg_id)
+                with contextlib.suppress(KeyError):
+                    self._response_events.pop(send_message.msg_id)
 
         if response_message.code:
             _LOGGER.warning(
