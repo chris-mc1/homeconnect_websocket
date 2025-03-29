@@ -101,15 +101,15 @@ class HomeAppliance:
         if message.data is None:
             return
         if message.action == Action.NOTIFY:
-            if message.resource in ["/ro/descriptionChange", "/ro/values"]:
+            if message.resource in ("/ro/descriptionChange", "/ro/values"):
                 await self._update_entities(message.data)
         elif message.action == Action.RESPONSE:
-            if message.resource in [
+            if message.resource in (
                 "/ro/allDescriptionChanges",
                 "/ro/allMandatoryValues",
-            ]:
+            ):
                 await self._update_entities(message.data)
-            elif message.resource == "/iz/info":
+            elif message.resource in ("/iz/info", "/ci/info"):
                 # Update device Info
                 self.info.update(message.data[0])
 
