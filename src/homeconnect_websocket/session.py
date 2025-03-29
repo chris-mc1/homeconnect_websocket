@@ -5,6 +5,7 @@ import contextlib
 import logging
 import re
 from base64 import urlsafe_b64encode
+from json import JSONDecodeError
 from typing import TYPE_CHECKING
 
 import aiohttp
@@ -131,9 +132,6 @@ class HCSession:
                 # loop event received, but not connected
                 if self._recv_task.done():
                     # loop exited
-                    if task_exc := self._recv_task.exception():
-                        _LOGGER.exception("Receive loop Exception", exc_info=task_exc)
-                        raise task_exc
                     _LOGGER.error("Receive loop exited unexpectedly")
                 elif self._handshake_task.done():
                     # loop running, handshake eexited
@@ -141,6 +139,7 @@ class HCSession:
                         _LOGGER.exception("Handshake Exception", exc_info=task_exc)
                         raise task_exc
                     _LOGGER.error("Handshake exited unexpectedly")
+                await self.close()
 
         except (aiohttp.ClientConnectionError, aiohttp.ClientConnectorSSLError):
             _LOGGER.exception("Error connecting to Appliance")
@@ -183,8 +182,12 @@ class HCSession:
                 timeout = TIMEOUT_INCREASE_FACTOR**self._retry_count
                 self._retry_count += 1
                 await asyncio.sleep(min(timeout, MAX_CONNECT_TIMEOUT))
+            except (JSONDecodeError, KeyError):
+                _LOGGER.warning("Can't decode message: %s", message)
             except asyncio.CancelledError:
                 raise
+            except Exception:
+                _LOGGER.exception("Receive loop Exception")
 
     async def _message_handler(self, message: Message) -> None:
         """Handle recived message."""
