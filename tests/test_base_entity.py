@@ -10,7 +10,7 @@ from homeconnect_websocket.message import Action, Message
 
 def test_init_base() -> None:
     """Test Entity int ."""
-    description = EntityDescription(uid=1, name="Test_Entity")
+    description = EntityDescription(uid=1, name="Test_Entity", protocolType="Integer")
     entity = Entity(description, AsyncMock())
     assert entity.uid == 1
     assert entity.name == "Test_Entity"
@@ -27,6 +27,7 @@ def test_init_full() -> None:
         available=False,
         access=Access.READ,
         enumeration={"0": "Open", "1": "Closed"},
+        protocolType="Integer",
     )
     entity = Entity(description, AsyncMock())
     assert entity.uid == 1
@@ -45,6 +46,7 @@ async def test_update() -> None:
         name="Test_Entity",
         available=False,
         access=Access.READ,
+        protocolType="Integer",
     )
     entity = Entity(description, AsyncMock())
     await entity.update({"available": True, "access": Access.READ_WRITE, "value": 1})
@@ -61,6 +63,7 @@ async def test_update_enum() -> None:
         available=False,
         access=Access.READ,
         enumeration={"0": "Open", "1": "Closed"},
+        protocolType="Integer",
     )
     entity = Entity(description, AsyncMock())
     await entity.update({"available": True, "access": Access.READ, "value": 1})
@@ -76,6 +79,7 @@ async def test_set() -> None:
         name="Test_Entity",
         available=True,
         access=Access.READ_WRITE,
+        protocolType="Integer",
     )
     appliance = AsyncMock()
     entity = Entity(description, appliance)
@@ -97,6 +101,7 @@ async def test_set_raw() -> None:
         name="Test_Entity",
         available=True,
         access=Access.READ_WRITE,
+        protocolType="Integer",
     )
     appliance = AsyncMock()
     entity = Entity(description, appliance)
@@ -119,6 +124,7 @@ async def test_set_enum() -> None:
         available=True,
         access=Access.READ_WRITE,
         enumeration={"0": "Open", "1": "Closed"},
+        protocolType="Integer",
     )
     appliance = AsyncMock()
     entity = Entity(description, appliance)
@@ -141,15 +147,16 @@ async def test_set_raw_enum() -> None:
         available=True,
         access=Access.READ_WRITE,
         enumeration={0: "Open", 1: "Closed"},
+        protocolType="Integer",
     )
     appliance = AsyncMock()
     entity = Entity(description, appliance)
-    await entity.set_value_raw("Open")
+    await entity.set_value_raw(0)
     appliance.session.send_sync.assert_called_once_with(
         Message(
             resource="/ro/values",
             action=Action.POST,
-            data={"uid": 1, "value": "Open"},
+            data={"uid": 1, "value": 0},
         )
     )
 
@@ -162,6 +169,7 @@ async def test_callback() -> None:
         name="Test_Entity",
         available=False,
         access=Access.READ,
+        protocolType="Integer",
     )
     entity = Entity(description, AsyncMock())
 
@@ -192,6 +200,7 @@ async def test_access() -> None:
         available=False,
         access=Access.READ,
         enumeration={"0": "Open", "1": "Closed"},
+        protocolType="Integer",
     )
     entity = Status(description, AsyncMock())
 
@@ -227,6 +236,7 @@ async def test_dump() -> None:
         max=10,
         stepSize=2,
         enumeration={0: "a", 1: "b"},
+        protocolType="Integer",
     )
     entity = Status(description, AsyncMock())
     await entity.update({"value": 1})

@@ -15,6 +15,7 @@ from .entities import (
     OptionDescription,
 )
 from .errors import ParserError
+from .helpers import convert_bool
 
 
 class FeatureMap(TypedDict):
@@ -23,21 +24,6 @@ class FeatureMap(TypedDict):
     feature: dict[int, str]
     error: dict[int, str]
     enumeration: dict[int, dict[int, str]]
-
-
-def convert_bool(obj: str | bool) -> bool:
-    """Convert a string to as bool."""
-    if isinstance(obj, str):
-        if obj.lower() == "true":
-            return True
-        if obj.lower() == "false":
-            return False
-        msg = "Can't convert %s to bool"
-        raise TypeError(msg, obj)
-    if isinstance(obj, bool):
-        return obj
-    msg = "Can't convert %s to bool"
-    raise TypeError(msg, obj)
 
 
 def parse_feature_mapping(feature_mapping: dict) -> FeatureMap:

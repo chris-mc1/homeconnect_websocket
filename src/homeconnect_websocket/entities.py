@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from .errors import AccessError
+from .helpers import TYPE_MAPPING
 from .message import Action, Message
 
 if TYPE_CHECKING:
@@ -92,7 +93,6 @@ class EntityDescription(TypedDict, total=False):
 
     uid: int
     name: str
-    type: Any
     enumeration: dict | None
     available: bool
     access: Access
@@ -152,6 +152,9 @@ class Entity(ABC):
         self._name = description["name"]
         self._callbacks = set()
         self._tasks = set()
+        self._type = TYPE_MAPPING.get(
+            description.get("protocolType"), lambda value: value
+        )
         if "enumeration" in description:
             self._enumeration = {
                 int(k): v for k, v in description["enumeration"].items()
@@ -160,14 +163,14 @@ class Entity(ABC):
                 v: int(k) for k, v in description["enumeration"].items()
             }
         if "initValue" in description:
-            self._value = description["initValue"]
+            self._value = self._type(description["initValue"])
         if "default" in description:
-            self._value = description["default"]
+            self._value = self._type(description["default"])
 
     async def update(self, values: dict) -> None:
         """Update the entity state and execute callbacks."""
         if "value" in values:
-            self._value = values["value"]
+            self._value = self._type(values["value"])
 
         for callback in self._callbacks:
             try:
@@ -243,12 +246,12 @@ class Entity(ABC):
         """Current raw Value."""
         return self._value
 
-    async def set_value_raw(self, value_raw: str | int | bool) -> None:
+    async def set_value_raw(self, value_raw: str | float | bool) -> None:
         """Set the raw Value."""
         message = Message(
             resource="/ro/values",
             action=Action.POST,
-            data={"uid": self._uid, "value": value_raw},
+            data={"uid": self._uid, "value": self._type(value_raw)},
         )
         await self._appliance.session.send_sync(message)
 
@@ -275,8 +278,8 @@ class AccessMixin(Entity):
             appliance (HomeAppliance): Appliance
 
         """
-        self._access = description.get("access", self._access)
         super().__init__(description, appliance)
+        self._access = description.get("access", self._access)
 
     async def update(self, values: dict) -> None:
         """Update the entity state and execute callbacks."""
@@ -320,8 +323,8 @@ class AvailableMixin(Entity):
             appliance (HomeAppliance): Appliance
 
         """
-        self._available = description.get("available", self._available)
         super().__init__(description, appliance)
+        self._available = description.get("available", self._available)
 
     async def update(self, values: dict) -> None:
         """Update the entity state and execute callbacks."""
@@ -367,13 +370,13 @@ class MinMaxMixin(Entity):
             appliance (HomeAppliance): Appliance
 
         """
-        if "min" in description:
-            self._min = int(description["min"])
-        if "max" in description:
-            self._max = int(description["max"])
-        if "stepSize" in description:
-            self._step = int(description["stepSize"])
         super().__init__(description, appliance)
+        if "min" in description:
+            self._min = float(description["min"])
+        if "max" in description:
+            self._max = float(description["max"])
+        if "stepSize" in description:
+            self._step = float(description["stepSize"])
 
     @property
     def min(self) -> float | None:

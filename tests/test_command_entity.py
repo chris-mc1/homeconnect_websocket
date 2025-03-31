@@ -12,7 +12,11 @@ from homeconnect_websocket.message import Action, Message
 async def test_execute() -> None:
     """Test Command.execute()."""
     description = EntityDescription(
-        uid=1, name="Test_Command", access=Access.READ_WRITE, available=True
+        uid=1,
+        name="Test_Command",
+        access=Access.READ_WRITE,
+        available=True,
+        protocolType="Integer",
     )
     appliance = AsyncMock()
     entity = Command(description, appliance)

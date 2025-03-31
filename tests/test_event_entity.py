@@ -19,7 +19,11 @@ class MockAppliance(AsyncMock):
 @pytest.mark.asyncio
 async def test_acknowledge() -> None:
     """Test Event.acknowledge()."""
-    description = EntityDescription(uid=1, name="Test_Event")
+    description = EntityDescription(
+        uid=1,
+        name="Test_Event",
+        protocolType="Integer",
+    )
     appliance = MockAppliance()
     entity = Event(description, appliance)
     await entity.acknowledge()
@@ -32,7 +36,11 @@ async def test_acknowledge() -> None:
 @pytest.mark.asyncio
 async def test_reject() -> None:
     """Test Event.reject()."""
-    description = EntityDescription(uid=1, name="Test_Event")
+    description = EntityDescription(
+        uid=1,
+        name="Test_Event",
+        protocolType="Integer",
+    )
     appliance = MockAppliance()
     entity = Event(description, appliance)
     await entity.reject()

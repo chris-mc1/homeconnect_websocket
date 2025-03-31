@@ -545,6 +545,14 @@ def test_convert_bool() -> None:
     assert convert_bool(True) is True  # noqa: FBT003
     assert convert_bool(False) is False  # noqa: FBT003
 
+    assert convert_bool(0) is False
+    assert convert_bool(1) is True
+    assert convert_bool(1.5) is True
+
+    assert convert_bool("0") is False
+    assert convert_bool("1") is True
+    assert convert_bool("1.5") is True
+
     with pytest.raises(TypeError):
         convert_bool({})
     with pytest.raises(TypeError):
