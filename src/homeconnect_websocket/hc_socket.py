@@ -169,6 +169,7 @@ class AesSocket(HCSocket):
 
     async def send(self, clear_msg: str) -> None:
         """Recive message."""
+        _LOGGER.debug("Send     %s: %s", self._url, clear_msg)
         if isinstance(clear_msg, str):
             clear_msg = bytes(clear_msg, "utf-8")
 
@@ -188,7 +189,8 @@ class AesSocket(HCSocket):
 
     async def _receive(self, message: aiohttp.WSMessage) -> str:
         if message.type != aiohttp.WSMsgType.BINARY:
-            msg = "Message not of Type binary"
+            msg = "Message not of Type binary %s"
+            msg.format(str(message))
             _LOGGER.warning(msg)
             raise ValueError(msg)
 
@@ -221,5 +223,7 @@ class AesSocket(HCSocket):
             msg = "Padding Error"
             _LOGGER.warning(msg)
             raise ValueError(msg)
+        decodeed_msg = msg[0:-pad_len].decode("utf-8")
 
-        return msg[0:-pad_len].decode("utf-8")
+        _LOGGER.debug("Received %s: %s", self._url, decodeed_msg)
+        return decodeed_msg

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
 )
-from unittest.mock import AsyncMock
+from unittest.mock import ANY, AsyncMock
 
 import aiohttp
 import pytest
@@ -132,25 +132,45 @@ async def test_session_handshake(
     )
 
     assert appliance.messages[2] == Message(
-        sid=10, msg_id=31, resource="/iz/info", version=1, action=Action.GET
+        sid=10,
+        msg_id=31,
+        resource="/ci/authentication",
+        version=3,
+        action=Action.GET,
+        data=[{"nonce": ANY}],
     )
 
     assert appliance.messages[3] == Message(
-        sid=10, msg_id=32, resource="/ei/deviceReady", version=2, action=Action.NOTIFY
+        sid=10, msg_id=32, resource="/ci/info", version=3, action=Action.GET
     )
 
     assert appliance.messages[4] == Message(
+        sid=10, msg_id=33, resource="/iz/info", version=1, action=Action.GET
+    )
+
+    assert appliance.messages[5] == Message(
+        sid=10, msg_id=34, resource="/ei/deviceReady", version=2, action=Action.NOTIFY
+    )
+
+    assert appliance.messages[6] == Message(
+        sid=10, msg_id=35, resource="/ni/info", version=1, action=Action.GET
+    )
+    assert appliance.messages[7] == Message(
         sid=10,
-        msg_id=33,
-        resource="/ro/allDescriptionChanges",
+        msg_id=36,
+        resource="/ro/allMandatoryValues",
         version=1,
         action=Action.GET,
     )
 
-    assert appliance.messages[5] == Message(
+    assert appliance.messages[8] == Message(
+        sid=10, msg_id=37, resource="/ro/values", version=1, action=Action.GET
+    )
+
+    assert appliance.messages[9] == Message(
         sid=10,
-        msg_id=34,
-        resource="/ro/allMandatoryValues",
+        msg_id=38,
+        resource="/ro/allDescriptionChanges",
         version=1,
         action=Action.GET,
     )

@@ -8,18 +8,23 @@ class HomeConnectError(Exception):
 class CodeResponsError(HomeConnectError):
     """Code Respons Recived from Appliance."""
 
-    def __init__(self, code: int, *args: object) -> None:
+    def __init__(self, code: int, resource: str, *args: object) -> None:
         """
         Code Respons Recived from Appliance.
 
         Args:
         ----
         code (int): Recived Code
+        resource (str): Recived resource
         *args (object): extra args
 
         """
         self.code = code
+        self.resource = resource
         super().__init__(*args)
+
+    def __str__(self) -> str:
+        return f"{self.code}, resource={self.resource}"
 
 
 class AccessError(HomeConnectError):

@@ -84,11 +84,11 @@ class ApplianceServer:
         response_msg = None
         if msg.resource == "/ci/services":
             response_msg = msg.responde(SERVICE_VERSIONS)
-        elif msg.resource == "/iz/info":
+        elif msg.resource in ("/iz/info", "/ci/info"):
             response_msg = msg.responde(NZ_INFO)
         elif msg.resource == "/ro/allDescriptionChanges":
             response_msg = msg.responde(DESCRIPTION_CHANGES)
-        elif msg.resource == "/ro/allMandatoryValues":
+        elif msg.resource in ("/ro/allMandatoryValues", "/ro/values"):
             response_msg = msg.responde(MANDATORY_VALUES)
         if response_msg:
             await self._send(response_msg.dump())
