@@ -223,7 +223,7 @@ class AesSocket(HCSocket):
             msg = "Padding Error"
             _LOGGER.warning(msg)
             raise ValueError(msg)
-        decodeed_msg = msg[0:-pad_len].decode("utf-8")
+        decoded_msg = msg[0:-pad_len].decode("utf-8")
 
-        _LOGGER.debug("Received %s: %s", self._url, decodeed_msg)
-        return decodeed_msg
+        _LOGGER.debug("Received %s: %s", self._url, decoded_msg)
+        return decoded_msg

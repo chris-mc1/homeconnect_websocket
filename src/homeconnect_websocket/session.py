@@ -308,7 +308,7 @@ class HCSession:
             _LOGGER.exception("Handshake cancelled")
             raise
         except CodeResponsError:
-            _LOGGER.exception("Received Code respons during Handshake")
+            _LOGGER.exception("Received Code response during Handshake")
             raise
         except Exception:
             _LOGGER.exception("Unknown Exception during Handshake")

@@ -6,11 +6,11 @@ class HomeConnectError(Exception):
 
 
 class CodeResponsError(HomeConnectError):
-    """Code Respons Recived from Appliance."""
+    """Code Response Recived from Appliance."""
 
     def __init__(self, code: int, resource: str, *args: object) -> None:
         """
-        Code Respons Recived from Appliance.
+        Code Response Recived from Appliance.
 
         Args:
         ----
