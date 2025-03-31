@@ -170,7 +170,11 @@ class HCSession:
         while self._socket:
             try:
                 if self._socket.closed:
-                    _LOGGER.debug("Socket closed, opening")
+                    _LOGGER.debug(
+                        "Socket closed with code %s, opening",
+                        self._socket._websocket.close_code,  # noqa: SLF001
+                        exc_info=self._socket._websocket.exception(),  # noqa: SLF001
+                    )
                     await self._reset()
                     await self._socket.connect()
                 async for message in self._socket:
@@ -185,6 +189,7 @@ class HCSession:
             except (JSONDecodeError, KeyError):
                 _LOGGER.warning("Can't decode message: %s", message)
             except asyncio.CancelledError:
+                _LOGGER.debug("Receive loop cancelled")
                 raise
             except Exception:
                 _LOGGER.exception("Receive loop Exception")

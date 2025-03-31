@@ -192,16 +192,19 @@ class AesSocket(HCSocket):
             msg = "Message not of Type binary %s"
             msg.format(str(message))
             _LOGGER.warning(msg)
+            _LOGGER.debug(str(message))
             raise ValueError(msg)
 
         buf = message.data
         if len(buf) < MINIMUM_MESSAGE_LENGTH:
             msg = "Message to short"
             _LOGGER.warning(msg)
+            _LOGGER.debug(str(message))
             raise ValueError(msg)
         if len(buf) % 16 != 0:
             msg = "Unaligned Message"
             _LOGGER.warning(msg)
+            _LOGGER.debug(str(message))
             raise ValueError(msg)
 
         enc_msg = buf[0:-16]
@@ -213,6 +216,7 @@ class AesSocket(HCSocket):
         if not hmac.compare_digest(recv_hmac, calculated_hmac):
             msg = "HMAC Failure"
             _LOGGER.warning(msg)
+            _LOGGER.debug(str(message))
             raise ValueError(msg)
 
         self._last_rx_hmac = recv_hmac
@@ -222,6 +226,7 @@ class AesSocket(HCSocket):
         if len(msg) < pad_len:
             msg = "Padding Error"
             _LOGGER.warning(msg)
+            _LOGGER.debug(str(message))
             raise ValueError(msg)
         decoded_msg = msg[0:-pad_len].decode("utf-8")
 
