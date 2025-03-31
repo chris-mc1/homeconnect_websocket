@@ -26,9 +26,9 @@ async def test_init(
         uid=1,
         name="Test_Program",
         options=[
-            OptionDescription(refUID=10000),
-            OptionDescription(refUID=10001),
-            OptionDescription(refUID=10002),
+            OptionDescription(refUID=10000, protocolType="Integer"),
+            OptionDescription(refUID=10001, protocolType="Integer"),
+            OptionDescription(refUID=10002, protocolType="Integer"),
         ],
     )
     appliance = await mock_homeconnect_appliance()
