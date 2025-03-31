@@ -241,3 +241,48 @@ def parse_device_description(
     parse_elements(description, xml_description, features)
 
     return description
+
+
+def main() -> None:
+    """For CLI Parser."""
+    import json
+    from argparse import ArgumentParser
+    from pathlib import Path
+
+    arg_parser = ArgumentParser(
+        description="HomeConnect Websocket Description Parser",
+        usage="%(prog)s -d DeviceDescription.xml -f FeatureMapping.xml -o output.json",
+    )
+    arg_parser.add_argument(
+        "-d",
+        type=Path,
+        required=True,
+        dest="description_path",
+        help="Device description files",
+    )
+    arg_parser.add_argument(
+        "-f",
+        type=Path,
+        required=True,
+        dest="feature_path",
+        help="Feature mapping files",
+    )
+    arg_parser.add_argument(
+        "-o", type=Path, required=True, dest="output_file", help="Output file"
+    )
+    args = arg_parser.parse_args()
+
+    with Path(args.description_path).open() as file:
+        description_file = file.read()
+
+    with Path(args.feature_path).open() as file:
+        feature_file = file.read()
+
+    description = parse_device_description(description_file, feature_file)
+
+    with Path(args.output_file).open("w") as file:
+        json.dump(description, file, indent=4)
+
+
+if __name__ == "__main__":
+    main()

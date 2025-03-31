@@ -20,6 +20,9 @@ classifiers = [
 Homepage = "https://github.com/chris-mc1/homeconnect_websocket"
 Issues = "https://github.com/chris-mc1/homeconnect_websocket/issues"
 
+[project.scripts]
+hc-parser = "homeconnect_websocket:description_parser.main"
+
 [dependency-groups]
 dev = [
   "pytest>=8.3.0",
