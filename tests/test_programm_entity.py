@@ -42,6 +42,19 @@ async def test_init(
 
 
 @pytest.mark.asyncio
+async def test_init_no_options(
+    mock_homeconnect_appliance: Callable[..., Awaitable[MockAppliance]],
+) -> None:
+    """Test Progrmm Entity init."""
+    description = EntityDescription(uid=1, name="Test_Program")
+
+    appliance = await mock_homeconnect_appliance()
+    entity = Program(description, appliance)
+
+    assert entity._options == []
+
+
+@pytest.mark.asyncio
 async def test_select(
     mock_homeconnect_appliance: Callable[..., Awaitable[MockAppliance]],
 ) -> None:

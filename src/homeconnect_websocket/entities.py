@@ -468,8 +468,9 @@ class Program(AvailableMixin, Entity):
         """
         super().__init__(description, appliance)
         self._options: list[Option] = []
-        for option in description["options"]:
-            self._options.append(appliance.entities_uid[option["refUID"]])
+        if "options" in description:
+            for option in description["options"]:
+                self._options.append(appliance.entities_uid[option["refUID"]])
 
     async def select(self) -> None:
         """Select this Program."""
