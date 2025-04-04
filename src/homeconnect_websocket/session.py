@@ -229,7 +229,7 @@ class HCSession:
                         self._response_messages[message.msg_id] = message
                         self._response_events[message.msg_id].set()
             except KeyError:
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "Received response for unkown Msg ID %s", message.msg_id
                 )
         else:
