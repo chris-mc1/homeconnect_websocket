@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Protocol
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -12,15 +12,15 @@ from homeconnect_websocket.session import HCSession
 
 from .entities import DeviceDescription
 
-if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
-
-
 TEST_PSK64 = "whZJhkPa3a1hkuDdI3twHdqi1qhTxjnKE8954_zyY_E="
 TEST_IV64 = "ofi7M1WB98sJeM2H1Ew3XA=="
 
 TEST_APP_ID = "c6683b15"
 TEST_APP_NAME = "Test Device"
+
+BASE_DESCRIPTION = DeviceDescription(
+    info={}, status=[], setting=[], event=[], command=[], option=[], program=[]
+)
 
 
 class MockAppliance(HomeAppliance):
@@ -50,7 +50,9 @@ class MockAppliance(HomeAppliance):
         """
         session_mock = Mock(return_value=AsyncMock(spec=HCSession))
         self.session = session_mock(host, app_name, app_id, psk64, iv64)
-        self.info = description.get("info", {})
+        _description = BASE_DESCRIPTION.copy()
+        _description.update(description)
+        self.info = _description.get("info", {})
 
         self.entities_uid = {}
         self.entities = {}
@@ -60,11 +62,11 @@ class MockAppliance(HomeAppliance):
         self.commands = {}
         self.options = {}
         self.programs = {}
-        self._create_entities(description)
+        self._create_entities(_description)
 
 
 @pytest.fixture
-def mock_homeconnect_appliance() -> Callable[..., Awaitable[MockAppliance]]:
+def mock_homeconnect_appliance() -> MockApplianceType:
     """Mock HomeAppliance for testing."""
 
     async def go(
@@ -532,3 +534,18 @@ DESCRIPTION = DeviceDescription(
         },
     }
 )
+
+
+class MockApplianceType(Protocol):
+    """Typeing for mock_homeconnect_appliance fixture."""
+
+    async def __call__(  # noqa: D102
+        self,
+        description: DeviceDescription = DESCRIPTION,
+        host: str = "127.0.0.1",
+        app_name: str = TEST_APP_NAME,
+        app_id: str = TEST_APP_ID,
+        psk64: str = TEST_PSK64,
+        iv64: str | None = TEST_IV64,
+    ) -> MockAppliance:
+        pass
