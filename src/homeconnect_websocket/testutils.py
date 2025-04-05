@@ -50,9 +50,9 @@ class MockAppliance(HomeAppliance):
         """
         session_mock = Mock(return_value=AsyncMock(spec=HCSession))
         self.session = session_mock(host, app_name, app_id, psk64, iv64)
-        description = BASE_DESCRIPTION.copy()
-        description.update(description)
-        self.info = description.get("info", {})
+        _description = BASE_DESCRIPTION.copy()
+        _description.update(description)
+        self.info = _description.get("info", {})
 
         self.entities_uid = {}
         self.entities = {}
@@ -62,7 +62,7 @@ class MockAppliance(HomeAppliance):
         self.commands = {}
         self.options = {}
         self.programs = {}
-        self._create_entities(description)
+        self._create_entities(_description)
 
 
 @pytest.fixture
