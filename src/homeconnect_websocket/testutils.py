@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Protocol
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -11,10 +11,6 @@ from homeconnect_websocket import HomeAppliance
 from homeconnect_websocket.session import HCSession
 
 from .entities import DeviceDescription
-
-if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
-
 
 TEST_PSK64 = "whZJhkPa3a1hkuDdI3twHdqi1qhTxjnKE8954_zyY_E="
 TEST_IV64 = "ofi7M1WB98sJeM2H1Ew3XA=="
@@ -70,7 +66,7 @@ class MockAppliance(HomeAppliance):
 
 
 @pytest.fixture
-def mock_homeconnect_appliance() -> Callable[..., Awaitable[MockAppliance]]:
+def mock_homeconnect_appliance() -> MockApplianceType:
     """Mock HomeAppliance for testing."""
 
     async def go(
@@ -538,3 +534,18 @@ DESCRIPTION = DeviceDescription(
         },
     }
 )
+
+
+class MockApplianceType(Protocol):
+    """Typeing for mock_homeconnect_appliance fixture."""
+
+    async def __call__(  # noqa: D102
+        self,
+        description: DeviceDescription = DESCRIPTION,
+        host: str = "127.0.0.1",
+        app_name: str = TEST_APP_NAME,
+        app_id: str = TEST_APP_ID,
+        psk64: str = TEST_PSK64,
+        iv64: str | None = TEST_IV64,
+    ) -> MockAppliance:
+        pass

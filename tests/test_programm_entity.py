@@ -9,17 +9,14 @@ from homeconnect_websocket.entities import (
     Program,
 )
 from homeconnect_websocket.message import Action, Message
-from homeconnect_websocket.testutils import MockAppliance
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
-
-    from homeconnect_websocket.testutils import MockAppliance
+    from homeconnect_websocket.testutils import MockApplianceType
 
 
 @pytest.mark.asyncio
 async def test_init(
-    mock_homeconnect_appliance: Callable[..., Awaitable[MockAppliance]],
+    mock_homeconnect_appliance: MockApplianceType,
 ) -> None:
     """Test Progrmm Entity init."""
     description = EntityDescription(
@@ -43,7 +40,7 @@ async def test_init(
 
 @pytest.mark.asyncio
 async def test_init_no_options(
-    mock_homeconnect_appliance: Callable[..., Awaitable[MockAppliance]],
+    mock_homeconnect_appliance: MockApplianceType,
 ) -> None:
     """Test Progrmm Entity init."""
     description = EntityDescription(uid=1, name="Test_Program")
@@ -56,7 +53,7 @@ async def test_init_no_options(
 
 @pytest.mark.asyncio
 async def test_select(
-    mock_homeconnect_appliance: Callable[..., Awaitable[MockAppliance]],
+    mock_homeconnect_appliance: MockApplianceType,
 ) -> None:
     """Test select Progrmm."""
     description = EntityDescription(
@@ -83,7 +80,7 @@ async def test_select(
 
 @pytest.mark.asyncio
 async def test_start(
-    mock_homeconnect_appliance: Callable[..., Awaitable[MockAppliance]],
+    mock_homeconnect_appliance: MockApplianceType,
 ) -> None:
     """Test start Progrmm."""
     description = EntityDescription(
