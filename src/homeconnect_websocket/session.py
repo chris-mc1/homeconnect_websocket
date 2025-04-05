@@ -57,7 +57,6 @@ class HCSession:
         app_id: str,
         psk64: str,
         iv64: str | None = None,
-        session: aiohttp.ClientSession | None = None,
     ) -> None:
         """
         HomeConnect Session.
@@ -69,7 +68,6 @@ class HCSession:
         app_id (str): ID used to identify this App
         psk64 (str): urlsafe base64 encoded psk key
         iv64 (Optional[str]): urlsafe base64 encoded iv64 key (only AES)
-        session (Optional[aiohttp.ClientSession]): ClientSession
 
         """
         self._host = host
@@ -80,7 +78,6 @@ class HCSession:
             "deviceName": app_name,
             "deviceID": app_id,
         }
-        self._session = session
         self._recv_loop_event = asyncio.Event()
         self.handshake = True
         self._response_messages = {}
