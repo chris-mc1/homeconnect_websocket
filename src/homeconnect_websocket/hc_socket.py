@@ -19,18 +19,23 @@ class HCSocket:
     _URL_FORMAT = "ws://{host}:80/homeconnect"
     _session: aiohttp.ClientSession
     _websocket: aiohttp.ClientWebSocketResponse | None = None
+    _owned_session: bool = True
 
-    def __init__(self, host: str) -> None:
+    def __init__(self, host: str, session: aiohttp.ClientSession | None = None) -> None:
         """
         Initialize.
 
         Args:
         ----
-        host (str): Host.
+        host (str): Host
+        session (Optional[aiohttp.ClientSession]): ClientSession
 
         """
         self._url = self._URL_FORMAT.format(host=host)
-        self._session = aiohttp.ClientSession()
+        if session is None:
+            session = aiohttp.ClientSession()
+            self._owned_session = False
+        self._session = session
 
     @abstractmethod
     async def connect(self) -> None:
@@ -55,7 +60,8 @@ class HCSocket:
         _LOGGER.debug("Closing socket %s", self._url)
         if self._websocket:
             await self._websocket.close()
-        await self._session.close()
+        if self._owned_session:
+            await self._session.close()
 
     @property
     def closed(self) -> bool:
