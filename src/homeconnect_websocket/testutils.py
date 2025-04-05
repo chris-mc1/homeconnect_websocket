@@ -22,6 +22,10 @@ TEST_IV64 = "ofi7M1WB98sJeM2H1Ew3XA=="
 TEST_APP_ID = "c6683b15"
 TEST_APP_NAME = "Test Device"
 
+BASE_DESCRIPTION = DeviceDescription(
+    info={}, status=[], setting=[], event=[], command=[], option=[], program=[]
+)
+
 
 class MockAppliance(HomeAppliance):
     """Mock HomeAppliance."""
@@ -50,6 +54,8 @@ class MockAppliance(HomeAppliance):
         """
         session_mock = Mock(return_value=AsyncMock(spec=HCSession))
         self.session = session_mock(host, app_name, app_id, psk64, iv64)
+        description = BASE_DESCRIPTION.copy()
+        description.update(description)
         self.info = description.get("info", {})
 
         self.entities_uid = {}
