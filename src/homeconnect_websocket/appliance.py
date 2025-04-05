@@ -18,8 +18,6 @@ from .entities import (
 from .message import Action, Message
 from .session import HCSession
 
-_LOGGER = logging.getLogger(__name__)
-
 
 class HomeAppliance:
     """HomeConnect Appliance."""
@@ -53,7 +51,7 @@ class HomeAppliance:
     _selected_program: SelectedProgram | None = None
     _active_program: ActiveProgram | None = None
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         description: DeviceDescription,
         host: str,
@@ -61,6 +59,7 @@ class HomeAppliance:
         app_id: str,
         psk64: str,
         iv64: str | None = None,
+        logger: logging.Logger | None = None,
     ) -> None:
         """
         HomeConnect Appliance.
@@ -73,9 +72,14 @@ class HomeAppliance:
             app_id (str): ID used to identify this App
             psk64 (str): urlsafe base64 encoded psk key
             iv64 (Optional[str]): urlsafe base64 encoded iv64 key (only AES)
+            logger (Optional[Logger]): Logger
 
         """
-        self.session = HCSession(host, app_name, app_id, psk64, iv64)
+        if logger is None:
+            self._logger = logging.getLogger(__name__)
+        else:
+            self._logger = logger.getChild("appliance")
+        self.session = HCSession(host, app_name, app_id, psk64, iv64, logger)
         self.info = description.get("info", {})
 
         self.entities_uid = {}
@@ -120,7 +124,7 @@ class HomeAppliance:
             if uid in self.entities_uid:
                 await self.entities_uid[uid].update(entity)
             else:
-                _LOGGER.debug("Recived Update for unkown entity %s", uid)
+                self._logger.debug("Recived Update for unkown entity %s", uid)
 
     def _create_entities(self, description: DeviceDescription) -> None:
         """Create Entities from Device description."""
