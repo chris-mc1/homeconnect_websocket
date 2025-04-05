@@ -48,13 +48,14 @@ class HCSession:
     _tasks: set[asyncio.Task]
     _ext_message_handler: Callable[[Message], None | Awaitable[None]] | None = None
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         host: str,
         app_name: str,
         app_id: str,
         psk64: str,
         iv64: str | None = None,
+        session: aiohttp.ClientSession | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         """
@@ -67,6 +68,7 @@ class HCSession:
         app_id (str): ID used to identify this App
         psk64 (str): urlsafe base64 encoded psk key
         iv64 (Optional[str]): urlsafe base64 encoded iv64 key (only AES)
+        session (Optional[aiohttp.ClientSession]): ClientSession
         logger (Optional[Logger]): Logger
 
         """
@@ -97,13 +99,15 @@ class HCSession:
         # create socket
         if self._iv64:
             self._logger.debug("Got iv64, using AES socket")
-            self._socket = AesSocket(self._host, self._psk64, self._iv64, logger)
+            self._socket = AesSocket(
+                self._host, self._psk64, self._iv64, session, logger
+            )
         elif self._psk64:
             self._logger.debug("No iv64, using TLS socket")
-            self._socket = TlsSocket(self._host, self._psk64, logger)
+            self._socket = TlsSocket(self._host, self._psk64, session, logger)
         else:  # For Testing
             self._logger.warning("Using unencrypted socket")
-            self._socket = HCSocket(self._host, logger)
+            self._socket = HCSocket(self._host, session, logger)
 
     @property
     def connected(self) -> bool:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from .entities import (
     ActiveProgram,
@@ -17,6 +18,9 @@ from .entities import (
 )
 from .message import Action, Message
 from .session import HCSession
+
+if TYPE_CHECKING:
+    from aiohttp import ClientSession
 
 
 class HomeAppliance:
@@ -59,6 +63,7 @@ class HomeAppliance:
         app_id: str,
         psk64: str,
         iv64: str | None = None,
+        session: ClientSession | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         """
@@ -72,6 +77,7 @@ class HomeAppliance:
             app_id (str): ID used to identify this App
             psk64 (str): urlsafe base64 encoded psk key
             iv64 (Optional[str]): urlsafe base64 encoded iv64 key (only AES)
+            session (Optional[aiohttp.ClientSession]): ClientSession
             logger (Optional[Logger]): Logger
 
         """
@@ -79,7 +85,7 @@ class HomeAppliance:
             self._logger = logging.getLogger(__name__)
         else:
             self._logger = logger.getChild("appliance")
-        self.session = HCSession(host, app_name, app_id, psk64, iv64, logger)
+        self.session = HCSession(host, app_name, app_id, psk64, iv64, session, logger)
         self.info = description.get("info", {})
 
         self.entities_uid = {}
