@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
 
 from .entities import (
     ActiveProgram,
@@ -18,9 +17,6 @@ from .entities import (
 )
 from .message import Action, Message
 from .session import HCSession
-
-if TYPE_CHECKING:
-    from aiohttp import ClientSession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,7 +53,7 @@ class HomeAppliance:
     _selected_program: SelectedProgram | None = None
     _active_program: ActiveProgram | None = None
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         description: DeviceDescription,
         host: str,
@@ -65,7 +61,6 @@ class HomeAppliance:
         app_id: str,
         psk64: str,
         iv64: str | None = None,
-        session: ClientSession | None = None,
     ) -> None:
         """
         HomeConnect Appliance.
@@ -78,10 +73,9 @@ class HomeAppliance:
             app_id (str): ID used to identify this App
             psk64 (str): urlsafe base64 encoded psk key
             iv64 (Optional[str]): urlsafe base64 encoded iv64 key (only AES)
-            session (Optional[aiohttp.ClientSession]): ClientSession
 
         """
-        self.session = HCSession(host, app_name, app_id, psk64, iv64, session)
+        self.session = HCSession(host, app_name, app_id, psk64, iv64)
         self.info = description.get("info", {})
 
         self.entities_uid = {}
