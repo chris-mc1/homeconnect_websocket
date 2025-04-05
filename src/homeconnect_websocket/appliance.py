@@ -22,8 +22,6 @@ from .session import HCSession
 if TYPE_CHECKING:
     from aiohttp import ClientSession
 
-_LOGGER = logging.getLogger(__name__)
-
 
 class HomeAppliance:
     """HomeConnect Appliance."""
@@ -66,6 +64,7 @@ class HomeAppliance:
         psk64: str,
         iv64: str | None = None,
         session: ClientSession | None = None,
+        logger: logging.Logger | None = None,
     ) -> None:
         """
         HomeConnect Appliance.
@@ -79,9 +78,14 @@ class HomeAppliance:
             psk64 (str): urlsafe base64 encoded psk key
             iv64 (Optional[str]): urlsafe base64 encoded iv64 key (only AES)
             session (Optional[aiohttp.ClientSession]): ClientSession
+            logger (Optional[Logger]): Logger
 
         """
-        self.session = HCSession(host, app_name, app_id, psk64, iv64, session)
+        if logger is None:
+            self._logger = logging.getLogger(__name__)
+        else:
+            self._logger = logger.getChild("appliance")
+        self.session = HCSession(host, app_name, app_id, psk64, iv64, session, logger)
         self.info = description.get("info", {})
 
         self.entities_uid = {}
@@ -126,7 +130,7 @@ class HomeAppliance:
             if uid in self.entities_uid:
                 await self.entities_uid[uid].update(entity)
             else:
-                _LOGGER.debug("Recived Update for unkown entity %s", uid)
+                self._logger.debug("Recived Update for unkown entity %s", uid)
 
     def _create_entities(self, description: DeviceDescription) -> None:
         """Create Entities from Device description."""

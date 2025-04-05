@@ -10,8 +10,6 @@ import aiohttp
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 
-_LOGGER = logging.getLogger(__name__)
-
 
 class HCSocket:
     """Socket Base class."""
@@ -21,7 +19,12 @@ class HCSocket:
     _websocket: aiohttp.ClientWebSocketResponse | None = None
     _owned_session: bool = True
 
-    def __init__(self, host: str, session: aiohttp.ClientSession | None = None) -> None:
+    def __init__(
+        self,
+        host: str,
+        session: aiohttp.ClientSession | None = None,
+        logger: logging.Logger | None = None,
+    ) -> None:
         """
         Initialize.
 
@@ -29,6 +32,7 @@ class HCSocket:
         ----
         host (str): Host
         session (Optional[aiohttp.ClientSession]): ClientSession
+        logger (Optional[Logger]): Logger
 
         """
         self._url = self._URL_FORMAT.format(host=host)
@@ -36,28 +40,32 @@ class HCSocket:
             session = aiohttp.ClientSession()
             self._owned_session = False
         self._session = session
+        if logger is None:
+            self._logger = logging.getLogger(__name__)
+        else:
+            self._logger = logger.getChild("socket")
 
     @abstractmethod
     async def connect(self) -> None:
         """Connect to websocket."""
-        _LOGGER.debug("Socket connecting to %s, mode=NONE", self._url)
+        self._logger.debug("Socket connecting to %s, mode=NONE", self._url)
         self._websocket = await self._session.ws_connect(self._url, heartbeat=20)
 
     @abstractmethod
     async def send(self, message: str) -> None:
         """Send message."""
-        _LOGGER.debug("Send     %s: %s", self._url, message)
+        self._logger.debug("Send     %s: %s", self._url, message)
         await self._websocket.send_str(message)
 
     @abstractmethod
     async def _receive(self, message: aiohttp.WSMessage) -> str:
         """Recive message."""
-        _LOGGER.debug("Received %s: %s", self._url, str(message.data))
+        self._logger.debug("Received %s: %s", self._url, str(message.data))
         return str(message.data)
 
     async def close(self) -> None:
         """Close websocket."""
-        _LOGGER.debug("Closing socket %s", self._url)
+        self._logger.debug("Closing socket %s", self._url)
         if self._websocket:
             await self._websocket.close()
         if self._owned_session:
@@ -85,7 +93,11 @@ class TlsSocket(HCSocket):
     _ssl_context: ssl.SSLContext
 
     def __init__(
-        self, host: str, psk64: str, session: aiohttp.ClientSession | None = None
+        self,
+        host: str,
+        psk64: str,
+        session: aiohttp.ClientSession | None = None,
+        logger: logging.Logger | None = None,
     ) -> None:
         """
         TLS Socket.
@@ -95,6 +107,7 @@ class TlsSocket(HCSocket):
         host (str): Host
         psk64 (str): psk64 key
         session (Optional[aiohttp.ClientSession]): ClientSession
+        logger (Optional[Logger]): Logger
 
         """
         # setup sslcontext
@@ -105,22 +118,22 @@ class TlsSocket(HCSocket):
         self._ssl_context.check_hostname = False
         self._ssl_context.verify_mode = ssl.CERT_NONE
         self._ssl_context.set_psk_client_callback(lambda _: (None, psk))
-        super().__init__(host, session)
+        super().__init__(host, session, logger)
 
     async def connect(self) -> None:
         """Connect to websocket."""
-        _LOGGER.debug("Socket connecting to %s, mode=TLS", self._url)
+        self._logger.debug("Socket connecting to %s, mode=TLS", self._url)
         self._websocket = await self._session.ws_connect(
             self._url, ssl=self._ssl_context, heartbeat=20
         )
 
     async def send(self, message: str) -> None:
         """Send message."""
-        _LOGGER.debug("Send     %s: %s", self._url, message)
+        self._logger.debug("Send     %s: %s", self._url, message)
         await self._websocket.send_str(message)
 
     async def _receive(self, message: aiohttp.WSMessage) -> str:
-        _LOGGER.debug("Received %s: %s", self._url, str(message.data))
+        self._logger.debug("Received %s: %s", self._url, str(message.data))
         if message.type == aiohttp.WSMsgType.ERROR:
             raise message.data
         return str(message.data)
@@ -144,6 +157,7 @@ class AesSocket(HCSocket):
         psk64: str,
         iv64: str,
         session: aiohttp.ClientSession | None = None,
+        logger: logging.Logger | None = None,
     ) -> None:
         """
         AES Socket.
@@ -154,6 +168,7 @@ class AesSocket(HCSocket):
             psk64 (str): psk64 key
             iv64 (str): iv64
             session (Optional[aiohttp.ClientSession]): ClientSession
+            logger (Optional[Logger]): Logger
 
         """
         psk = urlsafe_b64decode(psk64 + "===")
@@ -161,7 +176,7 @@ class AesSocket(HCSocket):
         self._enckey = hmac.digest(psk, b"ENC", digest="sha256")
         self._mackey = hmac.digest(psk, b"MAC", digest="sha256")
 
-        super().__init__(host, session)
+        super().__init__(host, session, logger)
 
     async def connect(self) -> None:
         """Connect to websocket."""
@@ -171,12 +186,12 @@ class AesSocket(HCSocket):
         self._aes_encrypt = AES.new(self._enckey, AES.MODE_CBC, self._iv)
         self._aes_decrypt = AES.new(self._enckey, AES.MODE_CBC, self._iv)
 
-        _LOGGER.debug("Socket connecting to %s, mode=AES", self._url)
+        self._logger.debug("Socket connecting to %s, mode=AES", self._url)
         self._websocket = await self._session.ws_connect(self._url, heartbeat=20)
 
     async def send(self, clear_msg: str) -> None:
         """Recive message."""
-        _LOGGER.debug("Send     %s: %s", self._url, clear_msg)
+        self._logger.debug("Send     %s: %s", self._url, clear_msg)
         if isinstance(clear_msg, str):
             clear_msg = bytes(clear_msg, "utf-8")
 
@@ -198,20 +213,20 @@ class AesSocket(HCSocket):
         if message.type != aiohttp.WSMsgType.BINARY:
             msg = "Message not of Type binary %s"
             msg.format(str(message))
-            _LOGGER.warning(msg)
-            _LOGGER.debug(str(message))
+            self._logger.warning(msg)
+            self._logger.debug(str(message))
             raise ValueError(msg)
 
         buf = message.data
         if len(buf) < MINIMUM_MESSAGE_LENGTH:
             msg = "Message to short"
-            _LOGGER.warning(msg)
-            _LOGGER.debug(str(message))
+            self._logger.warning(msg)
+            self._logger.debug(str(message))
             raise ValueError(msg)
         if len(buf) % 16 != 0:
             msg = "Unaligned Message"
-            _LOGGER.warning(msg)
-            _LOGGER.debug(str(message))
+            self._logger.warning(msg)
+            self._logger.debug(str(message))
             raise ValueError(msg)
 
         enc_msg = buf[0:-16]
@@ -222,8 +237,8 @@ class AesSocket(HCSocket):
 
         if not hmac.compare_digest(recv_hmac, calculated_hmac):
             msg = "HMAC Failure"
-            _LOGGER.warning(msg)
-            _LOGGER.debug(str(message))
+            self._logger.warning(msg)
+            self._logger.debug(str(message))
             raise ValueError(msg)
 
         self._last_rx_hmac = recv_hmac
@@ -232,10 +247,10 @@ class AesSocket(HCSocket):
         pad_len = msg[-1]
         if len(msg) < pad_len:
             msg = "Padding Error"
-            _LOGGER.warning(msg)
-            _LOGGER.debug(str(message))
+            self._logger.warning(msg)
+            self._logger.debug(str(message))
             raise ValueError(msg)
         decoded_msg = msg[0:-pad_len].decode("utf-8")
 
-        _LOGGER.debug("Received %s: %s", self._url, decoded_msg)
+        self._logger.debug("Received %s: %s", self._url, decoded_msg)
         return decoded_msg
