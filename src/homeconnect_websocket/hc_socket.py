@@ -19,18 +19,23 @@ class HCSocket:
     _URL_FORMAT = "ws://{host}:80/homeconnect"
     _session: aiohttp.ClientSession
     _websocket: aiohttp.ClientWebSocketResponse | None = None
+    _owned_session: bool = True
 
-    def __init__(self, host: str) -> None:
+    def __init__(self, host: str, session: aiohttp.ClientSession | None = None) -> None:
         """
         Initialize.
 
         Args:
         ----
-        host (str): Host.
+        host (str): Host
+        session (Optional[aiohttp.ClientSession]): ClientSession
 
         """
         self._url = self._URL_FORMAT.format(host=host)
-        self._session = aiohttp.ClientSession()
+        if session is None:
+            session = aiohttp.ClientSession()
+            self._owned_session = False
+        self._session = session
 
     @abstractmethod
     async def connect(self) -> None:
@@ -55,7 +60,8 @@ class HCSocket:
         _LOGGER.debug("Closing socket %s", self._url)
         if self._websocket:
             await self._websocket.close()
-        await self._session.close()
+        if self._owned_session:
+            await self._session.close()
 
     @property
     def closed(self) -> bool:
@@ -78,7 +84,9 @@ class TlsSocket(HCSocket):
     _URL_FORMAT = "wss://{host}:443/homeconnect"
     _ssl_context: ssl.SSLContext
 
-    def __init__(self, host: str, psk64: str) -> None:
+    def __init__(
+        self, host: str, psk64: str, session: aiohttp.ClientSession | None = None
+    ) -> None:
         """
         TLS Socket.
 
@@ -86,6 +94,7 @@ class TlsSocket(HCSocket):
         ----
         host (str): Host
         psk64 (str): psk64 key
+        session (Optional[aiohttp.ClientSession]): ClientSession
 
         """
         # setup sslcontext
@@ -96,7 +105,7 @@ class TlsSocket(HCSocket):
         self._ssl_context.check_hostname = False
         self._ssl_context.verify_mode = ssl.CERT_NONE
         self._ssl_context.set_psk_client_callback(lambda _: (None, psk))
-        super().__init__(host)
+        super().__init__(host, session)
 
     async def connect(self) -> None:
         """Connect to websocket."""
@@ -123,22 +132,19 @@ MINIMUM_MESSAGE_LENGTH = 32
 
 
 class AesSocket(HCSocket):
-    """
-    AES Socket.
-
-    Args:
-    ----
-    host (str): Host
-    psk64 (str): psk64 key
-    iv64 (str): iv64
-
-    """
+    """AES Socket."""
 
     _URL_FORMAT = "ws://{host}:80/homeconnect"
     _last_rx_hmac: bytes
     _last_tx_hmac: bytes
 
-    def __init__(self, host: str, psk64: str, iv64: str) -> None:
+    def __init__(
+        self,
+        host: str,
+        psk64: str,
+        iv64: str,
+        session: aiohttp.ClientSession | None = None,
+    ) -> None:
         """
         AES Socket.
 
@@ -147,6 +153,7 @@ class AesSocket(HCSocket):
             host (str): Host
             psk64 (str): psk64 key
             iv64 (str): iv64
+            session (Optional[aiohttp.ClientSession]): ClientSession
 
         """
         psk = urlsafe_b64decode(psk64 + "===")
@@ -154,7 +161,7 @@ class AesSocket(HCSocket):
         self._enckey = hmac.digest(psk, b"ENC", digest="sha256")
         self._mackey = hmac.digest(psk, b"MAC", digest="sha256")
 
-        super().__init__(host)
+        super().__init__(host, session)
 
     async def connect(self) -> None:
         """Connect to websocket."""
