@@ -88,6 +88,17 @@ class HCSession:
         self._tasks = set()
         self._retry_count = 0
 
+        # create socket
+        if self._iv64:
+            self._logger.debug("Got iv64, using AES socket")
+            self._socket = AesSocket(self._host, self._psk64, self._iv64)
+        elif self._psk64:
+            self._logger.debug("No iv64, using TLS socket")
+            self._socket = TlsSocket(self._host, self._psk64)
+        else:  # For Testing
+            self._logger.warning("Using unencrypted socket")
+            self._socket = HCSocket(self._host)
+
     @property
     def connected(self) -> bool:
         """Is connected."""
@@ -113,16 +124,6 @@ class HCSession:
         self._ext_message_handler = message_handler
         await self._reset()
 
-        # create socket
-        if self._iv64:
-            _LOGGER.debug("Got iv64, using AES socket")
-            self._socket = AesSocket(self._host, self._psk64, self._iv64)
-        elif self._psk64:
-            _LOGGER.debug("No iv64, using TLS socket")
-            self._socket = TlsSocket(self._host, self._psk64)
-        else:  # For Testing
-            _LOGGER.warning("Using unencrypted socket")
-            self._socket = HCSocket(self._host)
         try:
             await self._socket.connect()
             self._recv_task = asyncio.create_task(self._recv_loop())
