@@ -144,7 +144,6 @@ class BaseAppliance:
         """Dump Appliance state."""
         return {
             "entities": [entity.dump() for entity in self.entities.values()],
-            "service_versions": self.session.service_versions,
         }
 
     @property
@@ -245,3 +244,9 @@ class HomeAppliance(BaseAppliance):
         msg = Message(resource="/ni/info", action=Action.GET)
         rsp = await self.session.send_sync(msg)
         return rsp.data
+
+    def dump(self) -> dict:
+        """Dump Appliance state."""
+        state = super().dump()
+        state["service_versions"] = self.session.service_versions
+        return state
