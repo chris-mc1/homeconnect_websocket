@@ -23,10 +23,9 @@ if TYPE_CHECKING:
     from aiohttp import ClientSession
 
 
-class HomeAppliance:
-    """HomeConnect Appliance."""
+class BaseAppliance:
+    """Base HomeConnect Appliance."""
 
-    session: HCSession
     info: DeviceInfo
     entities_uid: dict[int, Entity]
     "entities by uid"
@@ -55,15 +54,9 @@ class HomeAppliance:
     _selected_program: SelectedProgram | None = None
     _active_program: ActiveProgram | None = None
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         description: DeviceDescription,
-        host: str,
-        app_name: str,
-        app_id: str,
-        psk64: str,
-        iv64: str | None = None,
-        session: ClientSession | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         """
@@ -85,7 +78,6 @@ class HomeAppliance:
             self._logger = logging.getLogger(__name__)
         else:
             self._logger = logger.getChild("appliance")
-        self.session = HCSession(host, app_name, app_id, psk64, iv64, session, logger)
         self.info = description.get("info", {})
 
         self.entities_uid = {}
@@ -97,40 +89,6 @@ class HomeAppliance:
         self.options = {}
         self.programs = {}
         self._create_entities(description)
-
-    async def connect(self) -> None:
-        """Open Connection with Appliance."""
-        await self.session.connect(self._message_handler)
-
-    async def close(self) -> None:
-        """Close Connection with Appliance."""
-        await self.session.close()
-
-    async def _message_handler(self, message: Message) -> None:
-        """Handel received messages."""
-        if message.data is None:
-            return
-        if message.action == Action.NOTIFY:
-            if message.resource in ("/ro/descriptionChange", "/ro/values"):
-                await self._update_entities(message.data)
-        elif message.action == Action.RESPONSE:
-            if message.resource in (
-                "/ro/allDescriptionChanges",
-                "/ro/allMandatoryValues",
-            ):
-                await self._update_entities(message.data)
-            elif message.resource in ("/iz/info", "/ci/info"):
-                # Update device Info
-                self.info.update(message.data[0])
-
-    async def _update_entities(self, data: list[dict]) -> None:
-        """Update entities from Message data."""
-        for entity in data:
-            uid = int(entity["uid"])
-            if uid in self.entities_uid:
-                await self.entities_uid[uid].update(entity)
-            else:
-                self._logger.debug("Recived Update for unkown entity %s", uid)
 
     def _create_entities(self, description: DeviceDescription) -> None:
         """Create Entities from Device description."""
@@ -182,18 +140,6 @@ class HomeAppliance:
             self.entities[entity.name] = entity
             self.entities_uid[entity.uid] = entity
 
-    async def get_wifi_networks(self) -> list[dict]:
-        """Get info on avalibel WiFi networks."""
-        msg = Message(resource="/ci/wifiNetworks", action=Action.GET)
-        rsp = await self.session.send_sync(msg)
-        return rsp.data
-
-    async def get_network_config(self) -> list[dict]:
-        """Get current network config."""
-        msg = Message(resource="/ni/info", action=Action.GET)
-        rsp = await self.session.send_sync(msg)
-        return rsp.data
-
     def dump(self) -> dict:
         """Dump Appliance state."""
         return {
@@ -218,3 +164,84 @@ class HomeAppliance:
             if self._selected_program.value == 0 or self._selected_program.value is None
             else self.entities_uid[self._selected_program.value]
         )
+
+
+class HomeAppliance(BaseAppliance):
+    """HomeConnect Appliance Client."""
+
+    session: HCSession
+
+    def __init__(  # noqa: PLR0913
+        self,
+        description: DeviceDescription,
+        host: str,
+        app_name: str,
+        app_id: str,
+        psk64: str,
+        iv64: str | None = None,
+        session: ClientSession | None = None,
+        logger: logging.Logger | None = None,
+    ) -> None:
+        """
+        HomeConnect Appliance Client.
+
+        Args:
+        ----
+            description (DeviceDescription): parsed Device description
+            host (str): Host
+            app_name (str): Name used to identify this App
+            app_id (str): ID used to identify this App
+            psk64 (str): urlsafe base64 encoded psk key
+            iv64 (Optional[str]): urlsafe base64 encoded iv64 key (only AES)
+            session (Optional[aiohttp.ClientSession]): ClientSession
+            logger (Optional[Logger]): Logger
+
+        """
+        self.session = HCSession(host, app_name, app_id, psk64, iv64, session, logger)
+        super().__init__(description, logger)
+
+    async def connect(self) -> None:
+        """Open Connection with Appliance."""
+        await self.session.connect(self._message_handler)
+
+    async def close(self) -> None:
+        """Close Connection with Appliance."""
+        await self.session.close()
+
+    async def _message_handler(self, message: Message) -> None:
+        """Handel received messages."""
+        if message.data is None:
+            return
+        if message.action == Action.NOTIFY:
+            if message.resource in ("/ro/descriptionChange", "/ro/values"):
+                await self._update_entities(message.data)
+        elif message.action == Action.RESPONSE:
+            if message.resource in (
+                "/ro/allDescriptionChanges",
+                "/ro/allMandatoryValues",
+            ):
+                await self._update_entities(message.data)
+            elif message.resource in ("/iz/info", "/ci/info"):
+                # Update device Info
+                self.info.update(message.data[0])
+
+    async def _update_entities(self, data: list[dict]) -> None:
+        """Update entities from Message data."""
+        for entity in data:
+            uid = int(entity["uid"])
+            if uid in self.entities_uid:
+                await self.entities_uid[uid].update(entity)
+            else:
+                self._logger.debug("Recived Update for unkown entity %s", uid)
+
+    async def get_wifi_networks(self) -> list[dict]:
+        """Get info on avalibel WiFi networks."""
+        msg = Message(resource="/ci/wifiNetworks", action=Action.GET)
+        rsp = await self.session.send_sync(msg)
+        return rsp.data
+
+    async def get_network_config(self) -> list[dict]:
+        """Get current network config."""
+        msg = Message(resource="/ni/info", action=Action.GET)
+        rsp = await self.session.send_sync(msg)
+        return rsp.data
