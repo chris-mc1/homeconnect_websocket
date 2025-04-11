@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import json
 from abc import ABC
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, TypedDict
@@ -163,9 +164,17 @@ class Entity(ABC):
                 v: int(k) for k, v in description["enumeration"].items()
             }
         if "initValue" in description:
-            self._value = self._type(description["initValue"])
+            try:
+                initValue = json.loads(description["initValue"])
+                self._value = initValue
+            except Exception:
+                _LOGGER.exception("initial value for %s could not be parsed", self.name)
         if "default" in description:
-            self._value = self._type(description["default"])
+            try:
+                default = json.loads(description["default"])
+                self._value = default
+            except Exception:
+                _LOGGER.exception("default value for %s could not be parsed", self.name)
 
     async def update(self, values: dict) -> None:
         """Update the entity state and execute callbacks."""
