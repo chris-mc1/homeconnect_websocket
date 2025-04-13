@@ -38,6 +38,24 @@ def test_init_full() -> None:
     assert entity._rev_enumeration == {"Open": 0, "Closed": 1}
 
 
+def test_init_object() -> None:
+    """Test Entity init full."""
+    description = EntityDescription(
+        uid=1,
+        name="Test_Entity",
+        default='{"test": "value", "other": 2}',
+        available=False,
+        access=Access.READ,
+        protocolType="Object",
+    )
+    entity = Entity(description, AsyncMock())
+    assert entity.uid == 1
+    assert entity.name == "Test_Entity"
+    assert entity.value == {"test": "value", "other": 2}
+    assert entity.value_raw == {"test": "value", "other": 2}
+    assert entity.enum is None
+
+
 @pytest.mark.asyncio
 async def test_update() -> None:
     """Test Entity.update()."""

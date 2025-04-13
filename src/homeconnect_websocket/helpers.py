@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import json
 from typing import Final
 
 
@@ -23,11 +24,18 @@ def convert_bool(obj: str | bool | float) -> bool:
     raise TypeError(msg, obj)
 
 
+def load_object(obj: str) -> dict:
+    """Load complex objects from json strings."""
+    if isinstance(obj, str):
+        return json.loads(obj)
+    return obj
+
+
 TYPE_MAPPING: Final[dict[str, type]] = {
     "Boolean": convert_bool,
     "Integer": int,
     "Float": float,
     "String": str,
-    "Object": dict,
+    "Object": load_object,
     None: lambda value: value,
 }
