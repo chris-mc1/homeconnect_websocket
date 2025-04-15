@@ -17,7 +17,7 @@ class HCSocket:
     _URL_FORMAT = "ws://{host}:80/homeconnect"
     _session: aiohttp.ClientSession
     _websocket: aiohttp.ClientWebSocketResponse | None = None
-    _owned_session: bool = True
+    _owned_session: bool = False
 
     def __init__(
         self,
@@ -38,7 +38,7 @@ class HCSocket:
         self._url = self._URL_FORMAT.format(host=host)
         if session is None:
             session = aiohttp.ClientSession()
-            self._owned_session = False
+            self._owned_session = True
         self._session = session
         if logger is None:
             self._logger = logging.getLogger(__name__)
