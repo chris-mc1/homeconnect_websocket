@@ -388,7 +388,7 @@ class HCSession:
             await asyncio.wait_for(response_event.wait(), timeout)
             response_message = self._response_messages[send_message.msg_id]
         except TimeoutError:
-            self._logger.warning("Timeout for message %s", send_message.msg_id)
+            self._logger.debug("Timeout for message %s", send_message.msg_id)
             raise
         except KeyError:
             if not self._connected:
@@ -399,7 +399,7 @@ class HCSession:
                     self._response_events.pop(send_message.msg_id)
 
         if response_message.code:
-            self._logger.warning(
+            self._logger.debug(
                 "Received Code %s for Message %s, resource: %s",
                 response_message.code,
                 send_message.msg_id,
