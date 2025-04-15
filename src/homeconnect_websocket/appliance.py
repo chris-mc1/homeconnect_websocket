@@ -134,37 +134,37 @@ class HomeAppliance:
 
     def _create_entities(self, description: DeviceDescription) -> None:
         """Create Entities from Device description."""
-        for status in description["status"]:
+        for status in description.get("status", []):
             entity = Status(status, self)
             self.status[entity.name] = entity
             self.entities[entity.name] = entity
             self.entities_uid[entity.uid] = entity
 
-        for setting in description["setting"]:
+        for setting in description.get("setting", []):
             entity = Setting(setting, self)
             self.settings[entity.name] = entity
             self.entities[entity.name] = entity
             self.entities_uid[entity.uid] = entity
 
-        for event in description["event"]:
+        for event in description.get("event", []):
             entity = Event(event, self)
             self.events[entity.name] = entity
             self.entities[entity.name] = entity
             self.entities_uid[entity.uid] = entity
 
-        for command in description["command"]:
+        for command in description.get("command", []):
             entity = Command(command, self)
             self.commands[entity.name] = entity
             self.entities[entity.name] = entity
             self.entities_uid[entity.uid] = entity
 
-        for option in description["option"]:
+        for option in description.get("option", []):
             entity = Option(option, self)
             self.options[entity.name] = entity
             self.entities[entity.name] = entity
             self.entities_uid[entity.uid] = entity
 
-        for program in description["program"]:
+        for program in description.get("program", []):
             entity = Program(program, self)
             self.programs[entity.name] = entity
             self.entities[entity.name] = entity
