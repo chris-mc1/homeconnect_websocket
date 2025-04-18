@@ -35,6 +35,9 @@ class HCSocket:
         logger (Optional[Logger]): Logger
 
         """
+        if ":" in host:
+            # is ipv6 address
+            host = f"[{host}]"
         self._url = self._URL_FORMAT.format(host=host)
         if session is None:
             session = aiohttp.ClientSession()
