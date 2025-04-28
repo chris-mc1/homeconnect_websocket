@@ -89,7 +89,7 @@ class HCSession:
         self._send_lock = asyncio.Lock()
         self.service_versions = {}
         self._tasks = set()
-        self._retry_count = 0
+        self.retry_count = 0
 
         if logger is None:
             self._logger = logging.getLogger(__name__)
@@ -132,6 +132,7 @@ class HCSession:
         """
         self._logger.info("Connecting to %s", self._host)
         self._ext_message_handler = message_handler
+        self.reconect_counter = 0
         await self._reset()
 
         try:
@@ -194,8 +195,8 @@ class HCSession:
                     await self._message_handler(message_obj)
             except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError) as ex:
                 self._logger.warning(ex)
-                timeout = TIMEOUT_INCREASE_FACTOR**self._retry_count
-                self._retry_count += 1
+                timeout = TIMEOUT_INCREASE_FACTOR**self.retry_count
+                self.retry_count += 1
                 await asyncio.sleep(min(timeout, MAX_CONNECT_TIMEOUT))
             except (JSONDecodeError, KeyError):
                 self._logger.warning("Can't decode message: %s", message)
@@ -224,7 +225,7 @@ class HCSession:
                 self._logger.info("Connected, no handshake")
                 self._connected = True
                 self._recv_loop_event.set()
-                self._retry_count = 0
+                self.retry_count = 0
                 await self._call_ext_message_handler(message)
 
         elif message.action == Action.RESPONSE:
@@ -319,7 +320,7 @@ class HCSession:
             # handshake completed
             self._connected = True
             self._recv_loop_event.set()
-            self._retry_count = 0
+            self.retry_count = 0
             self._logger.info("Handshake completed")
         except asyncio.CancelledError:
             self._logger.exception("Handshake cancelled")
