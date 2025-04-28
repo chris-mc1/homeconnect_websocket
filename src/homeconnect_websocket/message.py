@@ -74,6 +74,8 @@ class Message:
                 msg["data"] = self.data
             else:
                 msg["data"] = [self.data]
+        if self.code is not None:
+            msg["code"] = self.code
         buf = json.dumps(msg, separators=(",", ":"))
         # swap ' for ""
         return re.sub("'", '"', buf)
