@@ -159,7 +159,7 @@ class HCSession:
             if self._recv_task.cancel():
                 with contextlib.suppress(asyncio.CancelledError):
                     await self._recv_task
-            if self._handshake_task.cancel():
+            if self._handshake_task and self._handshake_task.cancel():
                 with contextlib.suppress(asyncio.CancelledError):
                     await self._handshake_task
             self._logger.error("Connection Error")  # noqa: TRY400
