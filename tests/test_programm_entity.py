@@ -109,3 +109,37 @@ async def test_start(
             },
         )
     )
+
+
+@pytest.mark.asyncio
+async def test_start_options(
+    mock_homeconnect_appliance: MockApplianceType,
+) -> None:
+    """Test start Progrmm."""
+    description = EntityDescription(
+        uid=1,
+        name="Test_Program",
+        options=[
+            OptionDescription(refUID=10000),
+            OptionDescription(refUID=10001),
+            OptionDescription(refUID=10002),
+        ],
+    )
+    appliance = await mock_homeconnect_appliance()
+    entity = Program(description, appliance)
+
+    await entity.start({10001: "new", 10004: 5})
+    appliance.session.send_sync.assert_called_once_with(
+        Message(
+            resource="/ro/activeProgram",
+            action=Action.POST,
+            data={
+                "program": 1,
+                "options": [
+                    {"uid": 10000, "value": True},
+                    {"uid": 10001, "value": "new"},
+                    {"uid": 10004, "value": 5},
+                ],
+            },
+        )
+    )
