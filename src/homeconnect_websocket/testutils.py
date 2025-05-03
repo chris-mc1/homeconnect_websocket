@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import hmac
+from base64 import urlsafe_b64decode
 from typing import Protocol
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
 
 from homeconnect_websocket import HomeAppliance
 from homeconnect_websocket.session import HCSession
@@ -549,3 +553,83 @@ class MockApplianceType(Protocol):
         iv64: str | None = TEST_IV64,
     ) -> MockAppliance:
         pass
+
+
+SERVER_ENCRYPT_DIRECTION = b"\x43"  # 'C' in ASCII
+SERVER_DECRYPT_DIRECTION = b"\x45"  # 'E' in ASCII
+
+
+class AesServerEncryption:
+    """Class implementing AES Server-side encryption."""
+
+    def __init__(self, psk64: str, iv64: str) -> None:
+        """
+        Class implementing AES Server-side encryption.
+
+        Args:
+        ----
+        psk64 (str): urlsafe base64 encoded psk key
+        iv64 (Optional[str]): urlsafe base64 encoded iv64 key (only AES)
+
+        """
+        psk = urlsafe_b64decode(psk64 + "===")
+        self.iv = urlsafe_b64decode(iv64 + "===")
+
+        self.enckey = hmac.digest(psk, b"ENC", digest="sha256")
+        self.mackey = hmac.digest(psk, b"MAC", digest="sha256")
+        self.reset()
+
+    def reset(self) -> None:
+        """Reset cipher and hmac."""
+        self.last_rx_hmac = bytes(16)
+        self.last_tx_hmac = bytes(16)
+
+        self.aes_encrypt = AES.new(self.enckey, AES.MODE_CBC, self.iv)
+        self.aes_decrypt = AES.new(self.enckey, AES.MODE_CBC, self.iv)
+
+    def encrypt(self, clear_msg: str | bytes) -> bytes:
+        """Encrypt message."""
+        if isinstance(clear_msg, str):
+            clear_msg = bytes(clear_msg, "utf-8")
+
+        pad_len = 16 - (len(clear_msg) % 16)
+        if pad_len == 1:
+            pad_len += 16
+        clear_msg = (
+            clear_msg + b"\x00" + get_random_bytes(pad_len - 2) + bytearray([pad_len])
+        )
+
+        enc_msg = self.aes_encrypt.encrypt(clear_msg)
+        self.last_tx_hmac = self.hmac_encrypt(enc_msg)
+
+        return enc_msg + self.last_tx_hmac
+
+    def hmac_encrypt(self, enc_msg: bytes) -> bytes:
+        """Calculate hmac for encrypted message."""
+        hmac_msg = self.iv + SERVER_ENCRYPT_DIRECTION + self.last_tx_hmac + enc_msg
+        return hmac.digest(self.mackey, hmac_msg, digest="sha256")[0:16]
+
+    def decrypt(self, message: bytes) -> str:
+        """Decrypt message."""
+        enc_msg = message[0:-16]
+        recv_hmac = message[-16:]
+
+        calculated_hmac = self.hmac_decrypt(enc_msg)
+
+        if not hmac.compare_digest(recv_hmac, calculated_hmac):
+            msg = "HMAC Failure"
+            raise ValueError(msg)
+
+        self.last_rx_hmac = recv_hmac
+
+        msg = self.aes_decrypt.decrypt(enc_msg)
+        pad_len = msg[-1]
+        if len(msg) < pad_len:
+            msg = "Padding Error"
+            raise ValueError(msg)
+        return msg[0:-pad_len].decode("utf-8")
+
+    def hmac_decrypt(self, enc_msg: bytes) -> bytes:
+        """Calculate hmac for decrypted message."""
+        hmac_msg = self.iv + SERVER_DECRYPT_DIRECTION + self.last_rx_hmac + enc_msg
+        return hmac.digest(self.mackey, hmac_msg, digest="sha256")[0:16]
