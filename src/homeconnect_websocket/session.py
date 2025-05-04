@@ -42,7 +42,7 @@ class HCSession:
     _send_lock: asyncio.Lock
     _socket: HCSocket = None
     _recv_loop_event: asyncio.Event
-    _connected: bool = False
+    connected_event: asyncio.Event | None = None
     _recv_task: asyncio.Task = None
     _handshake_task: asyncio.Task = None
     _tasks: set[asyncio.Task]
@@ -87,6 +87,7 @@ class HCSession:
         self._response_events = {}
         self._response_lock = asyncio.Lock()
         self._send_lock = asyncio.Lock()
+        self.connected_event = asyncio.Event()
         self.service_versions = {}
         self._tasks = set()
         self.retry_count = 0
@@ -113,7 +114,7 @@ class HCSession:
     def connected(self) -> bool:
         """Is connected."""
         if self._socket:
-            return self._connected and not self._socket.closed
+            return self.connected_event.is_set() and not self._socket.closed
         return False
 
     async def connect(
@@ -140,7 +141,7 @@ class HCSession:
             self._recv_task = asyncio.create_task(self._recv_loop())
             self._recv_task.add_done_callback(self._recv_loop_done_callback)
             await asyncio.wait_for(self._recv_loop_event.wait(), timeout)
-            if not self._connected:
+            if not self.connected_event.is_set():
                 # loop event received, but not connected
                 if self._recv_task.done():
                     # loop exited
@@ -170,7 +171,7 @@ class HCSession:
         """Rest connction state."""
         self.service_versions.clear()
         self._recv_loop_event.clear()
-        self._connected = False
+        self.connected_event.clear()
         self._response_messages.clear()
         # Set all response events
         async with self._response_lock:
@@ -223,7 +224,7 @@ class HCSession:
                 self._handshake_task.add_done_callback(self._recv_loop_done_callback)
             else:
                 self._logger.info("Connected, no handshake")
-                self._connected = True
+                self.connected_event.set()
                 self._recv_loop_event.set()
                 self.retry_count = 0
                 await self._call_ext_message_handler(message)
@@ -318,7 +319,7 @@ class HCSession:
             await self._call_ext_message_handler(response_description_changes)
 
             # handshake completed
-            self._connected = True
+            self.connected_event.set()
             self._recv_loop_event.set()
             self.retry_count = 0
             self._logger.info("Handshake completed")
@@ -335,6 +336,7 @@ class HCSession:
     async def close(self) -> None:
         """Close connction."""
         self._logger.info("Closing connection to %s", self._host)
+        self.connected_event.clear()
         if self._recv_task:
             self._recv_task.cancel()
         if self._socket:
@@ -392,7 +394,7 @@ class HCSession:
             self._logger.debug("Timeout for message %s", send_message.msg_id)
             raise
         except KeyError:
-            if not self._connected:
+            if not self.connected_event.is_set():
                 raise NotConnectedError from None
         finally:
             async with self._response_lock:
