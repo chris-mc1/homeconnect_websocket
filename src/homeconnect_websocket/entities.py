@@ -162,10 +162,13 @@ class Entity(ABC):
             self._rev_enumeration = {
                 v: int(k) for k, v in description["enumeration"].items()
             }
-        if "initValue" in description:
-            self._value = self._type(description["initValue"])
-        if "default" in description:
-            self._value = self._type(description["default"])
+        try:
+            if "initValue" in description:
+                self._value = self._type(description["initValue"])
+            if "default" in description:
+                self._value = self._type(description["default"])
+        except TypeError:
+            _LOGGER.exception("Failed to set default/init Value on %s", self._name)
 
     async def update(self, values: dict) -> None:
         """Update the entity state and execute callbacks."""

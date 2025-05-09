@@ -24,11 +24,15 @@ def convert_bool(obj: str | bool | float) -> bool:
     raise TypeError(msg, obj)
 
 
-def load_object(obj: str) -> dict:
+def load_object(obj_str: str) -> dict:
     """Load complex objects from json strings."""
-    if isinstance(obj, str):
-        return json.loads(obj)
-    return obj
+    if isinstance(obj_str, str):
+        try:
+            return json.loads(obj_str)
+        except json.JSONDecodeError as exc:
+            msg = "Can't decode JSON"
+            raise TypeError(msg) from exc
+    return obj_str
 
 
 TYPE_MAPPING: Final[dict[str, type]] = {
