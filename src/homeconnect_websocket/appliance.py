@@ -9,6 +9,7 @@ from .entities import (
     DeviceDescription,
     DeviceInfo,
     Entity,
+    EntityDescription,
     Event,
     Option,
     Program,
@@ -135,52 +136,49 @@ class HomeAppliance:
     def _create_entities(self, description: DeviceDescription) -> None:
         """Create Entities from Device description."""
         for status in description.get("status", []):
-            entity = Status(status, self)
+            entity = self._create_entity(status, Status)
             self.status[entity.name] = entity
-            self.entities[entity.name] = entity
-            self.entities_uid[entity.uid] = entity
 
         for setting in description.get("setting", []):
-            entity = Setting(setting, self)
+            entity = self._create_entity(setting, Setting)
             self.settings[entity.name] = entity
-            self.entities[entity.name] = entity
-            self.entities_uid[entity.uid] = entity
 
         for event in description.get("event", []):
-            entity = Event(event, self)
+            entity = self._create_entity(event, Event)
             self.events[entity.name] = entity
-            self.entities[entity.name] = entity
-            self.entities_uid[entity.uid] = entity
 
         for command in description.get("command", []):
-            entity = Command(command, self)
+            entity = self._create_entity(command, Command)
             self.commands[entity.name] = entity
-            self.entities[entity.name] = entity
-            self.entities_uid[entity.uid] = entity
 
         for option in description.get("option", []):
-            entity = Option(option, self)
+            entity = self._create_entity(option, Option)
             self.options[entity.name] = entity
-            self.entities[entity.name] = entity
-            self.entities_uid[entity.uid] = entity
 
         for program in description.get("program", []):
-            entity = Program(program, self)
+            entity = self._create_entity(program, Program)
             self.programs[entity.name] = entity
-            self.entities[entity.name] = entity
-            self.entities_uid[entity.uid] = entity
 
         if "activeProgram" in description:
-            entity = ActiveProgram(description["activeProgram"], self)
+            entity = self._create_entity(description["activeProgram"], ActiveProgram)
             self._active_program = entity
-            self.entities[entity.name] = entity
-            self.entities_uid[entity.uid] = entity
 
         if "selectedProgram" in description:
-            entity = SelectedProgram(description["selectedProgram"], self)
+            entity = self._create_entity(
+                description["selectedProgram"], SelectedProgram
+            )
             self._selected_program = entity
-            self.entities[entity.name] = entity
-            self.entities_uid[entity.uid] = entity
+
+    def _create_entity(
+        self, description: EntityDescription, cls: type[Entity]
+    ) -> Entity:
+        try:
+            entity = cls(description, self)
+        except Exception:
+            self._logger.exception("Failed to add Entity %s", description.get("name"))
+        self.entities[entity.name] = entity
+        self.entities_uid[entity.uid] = entity
+        return entity
 
     async def get_wifi_networks(self) -> list[dict]:
         """Get info on avalibel WiFi networks."""
