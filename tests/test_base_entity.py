@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeconnect_websocket.entities import Access, Entity, EntityDescription, Status
-from homeconnect_websocket.errors import AccessError
+from homeconnect_websocket.errors import AccessError, CodeResponsError
 from homeconnect_websocket.message import Action, Message
 
 
@@ -177,6 +177,55 @@ async def test_set_raw_enum() -> None:
             data={"uid": 1, "value": 0},
         )
     )
+
+
+@pytest.mark.asyncio
+async def test_set_shadow() -> None:
+    """Test Entity.set_value()."""
+    description = EntityDescription(
+        uid=1,
+        name="Test_Entity",
+        available=True,
+        access=Access.READ_WRITE,
+        protocolType="Integer",
+    )
+    appliance = AsyncMock()
+    appliance.session.send_sync.return_value = Message(action=Action.RESPONSE)
+    entity = Entity(description, appliance)
+
+    assert entity.value_raw is None
+    assert entity.value_shadow is None
+
+    await entity.set_value(1)
+
+    assert entity.value_raw is None
+    assert entity.value_shadow == 1
+
+
+@pytest.mark.asyncio
+async def test_set_shadow_fail() -> None:
+    """Test Entity.set_value()."""
+    description = EntityDescription(
+        uid=1,
+        name="Test_Entity",
+        available=True,
+        access=Access.READ_WRITE,
+        protocolType="Integer",
+    )
+    appliance = AsyncMock()
+    entity = Entity(description, appliance)
+    appliance.session.send_sync.side_effect = CodeResponsError(
+        code=400, resource="/ro/values"
+    )
+
+    assert entity.value_raw is None
+    assert entity.value_shadow is None
+
+    with pytest.raises(CodeResponsError):
+        await entity.set_value(1)
+
+    assert entity.value_raw is None
+    assert entity.value_shadow is None
 
 
 @pytest.mark.asyncio
