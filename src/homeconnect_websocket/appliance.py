@@ -204,7 +204,8 @@ class HomeAppliance:
         """Return the current Active Program entity or None if no Program is active."""
         return (
             None
-            if self._active_program.value == 0 or self._active_program.value is None
+            if self._active_program.value_shadow == 0
+            or self._active_program.value_shadow is None
             else self.entities_uid[self._active_program.value]
         )
 
@@ -213,6 +214,7 @@ class HomeAppliance:
         """Return current selected Program entity or None if no Program is selected."""
         return (
             None
-            if self._selected_program.value == 0 or self._selected_program.value is None
+            if self._selected_program.value_shadow == 0
+            or self._selected_program.value_shadow is None
             else self.entities_uid[self._selected_program.value]
         )
