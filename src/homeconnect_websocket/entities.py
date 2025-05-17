@@ -140,6 +140,7 @@ class Entity(ABC):
     _name: str
     _callbacks: set[Callable[[Entity], Coroutine]]
     _value: Any | None = None
+    _value_shadow: Any | None = None
     _enumeration: dict | None = None
     _rev_enumeration: dict
 
@@ -169,11 +170,13 @@ class Entity(ABC):
                 self._value = self._type(description["default"])
         except TypeError:
             _LOGGER.exception("Failed to set default/init Value on %s", self._name)
+        self._value_shadow = self._value
 
     async def update(self, values: dict) -> None:
         """Update the entity state and execute callbacks."""
         if "value" in values:
             self._value = self._type(values["value"])
+            self._value_shadow = self._value
 
         for callback in self._callbacks:
             try:
@@ -249,6 +252,11 @@ class Entity(ABC):
         """Current raw Value."""
         return self._value
 
+    @property
+    def value_shadow(self) -> Any | None:
+        """Shadow Value of the Entity."""
+        return self._value_shadow
+
     async def set_value_raw(self, value_raw: str | float | bool) -> None:
         """Set the raw Value."""
         message = Message(
@@ -256,7 +264,9 @@ class Entity(ABC):
             action=Action.POST,
             data={"uid": self._uid, "value": self._type(value_raw)},
         )
-        await self._appliance.session.send_sync(message)
+        response = await self._appliance.session.send_sync(message)
+        if response.action == Action.RESPONSE and response.code is None:
+            self._value_shadow = self._type(value_raw)
 
     @property
     def enum(self) -> dict[int, str] | None:
@@ -489,7 +499,7 @@ class Program(AvailableMixin, Entity):
         if options is None:
             options = {}
         _options = [
-            {"uid": option.uid, "value": option.value_raw}
+            {"uid": option.uid, "value": option.value_shadow}
             for option in self._options
             if option.access == Access.READ_WRITE and option.uid not in options
         ]
