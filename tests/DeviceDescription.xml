@@ -75,7 +75,14 @@
     <selectedProgram access="readWrite" fullOptionSet="false" uid="101A" />
     <protectionPort access="readWrite" available="true" uid="101B" />
     <enumerationTypeList>
-        <enumerationType enid="3001">
+        <enumerationType enid="3000">
+            <enumeration value="0" />
+            <enumeration value="1" />
+            <enumeration value="2" />
+            <enumeration value="3" />
+            <enumeration value="4" />
+        </enumerationType>
+        <enumerationType enid="3001" subsetOf="3000">
             <enumeration value="0" />
             <enumeration value="1" />
             <enumeration value="2" />

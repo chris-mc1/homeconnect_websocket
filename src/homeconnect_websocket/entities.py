@@ -233,7 +233,7 @@ class Entity(ABC):
             return self._enumeration[self._value]
         return self._value
 
-    async def set_value(self, value: str | int | bool) -> None:
+    async def set_value(self, value: str | int | bool) -> None:  # noqa: FBT001
         """
         Set the Value of the Entity.
 
@@ -257,7 +257,7 @@ class Entity(ABC):
         """Shadow Value of the Entity."""
         return self._value_shadow
 
-    async def set_value_raw(self, value_raw: str | float | bool) -> None:
+    async def set_value_raw(self, value_raw: str | float | bool) -> None:  # noqa: FBT001
         """Set the raw Value."""
         message = Message(
             resource="/ro/values",
@@ -305,7 +305,7 @@ class AccessMixin(Entity):
         """Current Access state."""
         return self._access
 
-    async def set_value_raw(self, value_raw: str | int | bool) -> None:
+    async def set_value_raw(self, value_raw: str | int | bool) -> None:  # noqa: FBT001
         """Set the raw Value."""
         if self._access not in [Access.READ_WRITE, Access.WRITE_ONLY]:
             msg = "Not Writable"
@@ -350,7 +350,7 @@ class AvailableMixin(Entity):
         """Current Available state."""
         return self._available
 
-    async def set_value_raw(self, value_raw: str | int | bool) -> None:
+    async def set_value_raw(self, value_raw: str | int | bool) -> None:  # noqa: FBT001
         """Set the raw Value."""
         if not self._available:
             msg = "Not Available"
@@ -442,7 +442,7 @@ class Event(Entity):
 class Command(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
     """Represents an Command Entity."""
 
-    async def execute(self, value: str | int | bool) -> None:
+    async def execute(self, value: int) -> None:
         """Execute command."""
         if self._access not in [Access.READ_WRITE, Access.WRITE_ONLY]:
             msg = "Not Writable"

@@ -7,7 +7,7 @@ import json
 from typing import Final
 
 
-def convert_bool(obj: str | bool | float) -> bool:
+def convert_bool(obj: str | bool | float) -> bool:  # noqa: FBT001
     """Convert a string to as bool."""
     if isinstance(obj, str):
         if obj.lower() == "true":
