@@ -260,9 +260,9 @@ def parse_device_description(
 
 def main() -> None:
     """For CLI Parser."""
-    import json
-    from argparse import ArgumentParser
-    from pathlib import Path
+    import json  # noqa: PLC0415
+    from argparse import ArgumentParser  # noqa: PLC0415
+    from pathlib import Path  # noqa: PLC0415
 
     arg_parser = ArgumentParser(
         description="HomeConnect Websocket Description Parser",
