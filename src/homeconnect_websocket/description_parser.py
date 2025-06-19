@@ -57,6 +57,21 @@ def parse_feature_mapping(feature_mapping: dict) -> FeatureMap:
     return features
 
 
+def add_enum_subsets(features: FeatureMap, description: list[dict]) -> None:
+    """Add Enum subsets to FeatureMap."""
+    if "enumerationTypeList" in description:
+        for enum in description["enumerationTypeList"]["enumerationType"]:
+            if (
+                "@subsetOf" in enum
+                and int(enum["@enid"], base=16) not in features["enumeration"]
+            ):
+                super_enum = features["enumeration"][int(enum["@subsetOf"], base=16)]
+                subset_enum = {}
+                for value in enum["enumeration"]:
+                    subset_enum[int(value["@value"])] = super_enum[int(value["@value"])]
+                features["enumeration"][int(enum["@enid"], base=16)] = subset_enum
+
+
 def parse_options(element: list[dict] | dict) -> list[OptionDescription]:
     """Parse Programs Options."""
     options = []
@@ -234,7 +249,7 @@ def parse_device_description(
         raise ParserError(msg) from exc
 
     features = parse_feature_mapping(feature_mapping)
-
+    add_enum_subsets(features, xml_description)
     description = DeviceDescription(
         status=[], option=[], setting=[], event=[], command=[], program=[]
     )

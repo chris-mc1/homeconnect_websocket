@@ -34,10 +34,12 @@
     <error refEID="2002">Error.2</error>
   </errorDescription>
   <enumDescriptionList>
-    <enumDescription refENID="3001" enumKey="EventState">
+    <enumDescription refENID="3000" enumKey="EventState">
       <enumMember refValue="0">Off</enumMember>
       <enumMember refValue="1">Present</enumMember>
       <enumMember refValue="2">Confirmed</enumMember>
+      <enumMember refValue="3">Extra 1</enumMember>
+      <enumMember refValue="4">Extra 2</enumMember>
     </enumDescription>
     <enumDescription refENID="3002" enumKey="EnumType.1">
       <enumMember refValue="0">Open</enumMember>
