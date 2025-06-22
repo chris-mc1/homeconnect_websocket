@@ -3,21 +3,17 @@ from __future__ import annotations
 import hmac
 from asyncio import Lock
 from base64 import urlsafe_b64decode
+from copy import copy
 
 import aiohttp
 from aiohttp import web
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 from homeconnect_websocket.hc_socket import MINIMUM_MESSAGE_LENGTH
-from homeconnect_websocket.message import Action, Message, load_message
+from homeconnect_websocket.message import Message, load_message
 
 from const import (
-    CLIENT_MESSAGE_ID,
-    DESCRIPTION_CHANGES,
-    MANDATORY_VALUES,
-    NZ_INFO,
     SERVER_MESSAGE_ID,
-    SERVICE_VERSIONS,
     SESSION_ID,
 )
 
@@ -31,9 +27,10 @@ class ApplianceServer:
     ws: web.WebSocketResponse = None
     host: str = None
 
-    def __init__(self, psk64: str) -> None:
+    def __init__(self, message_set: dict, psk64: str) -> None:
         """Fake Appliance."""
         self.psk64 = psk64
+        self.message_set = message_set
         self._lock = Lock()
         self.messages = []
 
@@ -65,43 +62,49 @@ class ApplianceServer:
     async def _receive(self, message: aiohttp.WSMessage) -> str:
         return str(message.data)
 
+    def _set_message_info(self, message: Message) -> None:
+        """Set Message infos. called before sending message."""
+        # Set sID
+        if message.sid is None:
+            message.sid = SESSION_ID
+
+        # Set msgID
+        if message.msg_id is None:
+            message.msg_id = self.mid
+            self.mid += 1
+
     async def init_handler(self) -> None:
         """Handle init message."""
         self._reset()
-        msg = Message(
-            sid=SESSION_ID,
-            msg_id=self.mid,
-            resource="/ei/initialValues",
-            version=2,
-            action=Action.POST,
-            data=[{"edMsgID": CLIENT_MESSAGE_ID}],
-        )
-        self.mid = +1
+        msg = copy(self.message_set["init"])
+        self._set_message_info(msg)
         await self._send(msg.dump())
 
     async def message_handler(self, msg: Message) -> None:
         """Handle other messages."""
         response_msg = None
         if msg.resource == "/ci/services":
-            response_msg = msg.responde(SERVICE_VERSIONS)
-        elif msg.resource in ("/iz/info", "/ci/info"):
-            response_msg = msg.responde(NZ_INFO)
-        elif msg.resource == "/ro/allDescriptionChanges":
-            response_msg = msg.responde(DESCRIPTION_CHANGES)
-        elif msg.resource in ("/ro/allMandatoryValues", "/ro/values"):
-            response_msg = msg.responde(MANDATORY_VALUES)
+            response_msg = msg.responde(self.message_set["services"])
+        elif (
+            response_data := self.message_set["responses"].get(msg.resource) is not None
+        ):
+            response_msg = msg.responde(response_data)
+        else:
+            response_msg = msg.responde()
+            response_msg.code = 404
         if response_msg:
+            self._set_message_info(response_msg)
             await self._send(response_msg.dump())
 
 
 class ApplianceServerAes(ApplianceServer):
     """Appliance Server with AES."""
 
-    def __init__(self, psk64: str, iv64: str) -> None:
+    def __init__(self, message_set: dict, psk64: str, iv64: str) -> None:
         """Appliance Server with AES."""
         self.iv64 = iv64
         self.encryption = AesServerEncryption(psk64, iv64)
-        super().__init__(psk64)
+        super().__init__(message_set, psk64)
 
     async def websocket_handler(self, request: web.Request) -> None:
         """Handle aiohttp websocket requests."""

@@ -13,6 +13,7 @@ from homeconnect_websocket.testutils import TEST_APP_ID, TEST_APP_NAME
 
 from const import (
     CLIENT_MESSAGE_ID,
+    DEVICE_MESSAGE_SET_1,
     SERVER_MESSAGE_ID,
     SESSION_ID,
 )
@@ -30,7 +31,7 @@ async def test_session_connect_tls(
     appliance_server_tls: Callable[..., Awaitable[ApplianceServer]],
 ) -> None:
     """Test Session connection."""
-    appliance_server = await appliance_server_tls()
+    appliance_server = await appliance_server_tls(DEVICE_MESSAGE_SET_1)
     session = HCSession(
         appliance_server.host,
         app_name=TEST_APP_NAME,
@@ -65,7 +66,7 @@ async def test_session_connect_aes(
     appliance_server_aes: Callable[..., Awaitable[ApplianceServerAes]],
 ) -> None:
     """Test Session connection failing."""
-    appliance_server = await appliance_server_aes()
+    appliance_server = await appliance_server_aes(DEVICE_MESSAGE_SET_1)
     session = HCSession(
         appliance_server.host,
         app_name=TEST_APP_NAME,
@@ -101,7 +102,7 @@ async def test_session_handshake(
     appliance_server: Callable[..., Awaitable[ApplianceServer]],
 ) -> None:
     """Test Session Handshake."""
-    appliance = await appliance_server()
+    appliance = await appliance_server(DEVICE_MESSAGE_SET_1)
     session = HCSession(
         appliance.host,
         app_name=TEST_APP_NAME,
