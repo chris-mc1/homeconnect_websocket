@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-import re
 from base64 import urlsafe_b64encode
 from json import JSONDecodeError
 from typing import TYPE_CHECKING
@@ -76,7 +75,6 @@ class HCSession:
         self._psk64 = psk64
         self._iv64 = iv64
         self._device_info = {
-            "deviceType": "Application",
             "deviceName": app_name,
             "deviceID": app_id,
         }
@@ -267,6 +265,9 @@ class HCSession:
     async def _handshake(self, message_init: Message) -> None:
         try:
             # responde to init message
+            self._device_info["deviceType"] = (
+                2 if message_init.version == 1 else "Application"
+            )
             await self.send(message_init.responde(self._device_info))
 
             # request available services
@@ -275,41 +276,36 @@ class HCSession:
             self.set_service_versions(response_services)
             await self._call_ext_message_handler(response_services)
 
-            token = urlsafe_b64encode(get_random_bytes(32)).decode("UTF-8")
-            token = re.sub(r"=", "", token)
-            message_authentication = Message(
-                resource="/ci/authentication", data={"nonce": token}
-            )
-            await self.send(message_authentication)
+            if self.service_versions.get("ci", 1) < 3:  # noqa: PLR2004
+                # authenticate
+                token = urlsafe_b64encode(get_random_bytes(32)).decode("UTF-8")
+                token = token.replace("=", "")
+                message_authentication = Message(
+                    resource="/ci/authentication", data={"nonce": token}
+                )
+                await self.send_sync(message_authentication)
 
-            # request device info
-            with contextlib.suppress(CodeResponsError):
-                message_info = Message(resource="/ci/info")
-                response_info = await self.send_sync(message_info)
-                await self._call_ext_message_handler(response_info)
+                # request device info
+                with contextlib.suppress(CodeResponsError):
+                    message_info = Message(resource="/ci/info")
+                    response_info = await self.send_sync(message_info)
+                    await self._call_ext_message_handler(response_info)
 
-            with contextlib.suppress(CodeResponsError):
+            if "iz" in self.service_versions:
                 message_info = Message(resource="/iz/info")
                 response_info = await self.send_sync(message_info)
                 await self._call_ext_message_handler(response_info)
 
-            # report device ready
-            message_ready = Message(resource="/ei/deviceReady", action=Action.NOTIFY)
-            await self.send(message_ready)
+            if self.service_versions.get("ei", 1) == 2:  # noqa: PLR2004
+                # report device ready
+                message_ready = Message(
+                    resource="/ei/deviceReady", action=Action.NOTIFY
+                )
+                await self.send(message_ready)
 
-            message_ready = Message(resource="/ni/info")
-            await self.send(message_ready)
-
-            # request mandatory values
-            message_mandatory_values = Message(resource="/ro/allMandatoryValues")
-            response_mandatory_values = await self.send_sync(message_mandatory_values)
-            await self._call_ext_message_handler(response_mandatory_values)
-
-            # request values
-            with contextlib.suppress(CodeResponsError):
-                message_values = Message(resource="/ro/values")
-                response_values = await self.send_sync(message_values)
-                await self._call_ext_message_handler(response_values)
+            if "ni" in self.service_versions:
+                message_ready = Message(resource="/ni/info")
+                await self.send_sync(message_ready)
 
             # request description changes
             message_description_changes = Message(resource="/ro/allDescriptionChanges")
@@ -317,6 +313,11 @@ class HCSession:
                 message_description_changes
             )
             await self._call_ext_message_handler(response_description_changes)
+
+            # request mandatory values
+            message_mandatory_values = Message(resource="/ro/allMandatoryValues")
+            response_mandatory_values = await self.send_sync(message_mandatory_values)
+            await self._call_ext_message_handler(response_mandatory_values)
 
             # handshake completed
             self.connected_event.set()

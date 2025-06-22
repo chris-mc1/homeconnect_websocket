@@ -24,8 +24,8 @@ async def appliance_server() -> AsyncGenerator[
     """Appliance Server with TLS."""
     servers: list[TestServer] = []
 
-    async def go(port: int = 80) -> ApplianceServer:
-        appliance = ApplianceServer(None)
+    async def go(message_set: dict, port: int = 80) -> ApplianceServer:
+        appliance = ApplianceServer(message_set, None)
 
         app = web.Application()
         app.add_routes([web.get("/homeconnect", appliance.websocket_handler)])
@@ -49,8 +49,10 @@ async def appliance_server_tls() -> AsyncGenerator[
     """Appliance Server with TLS."""
     servers: list[TestServer] = []
 
-    async def go(psk64: str = TEST_PSK64, port: int = 443) -> ApplianceServer:
-        appliance = ApplianceServer(psk64)
+    async def go(
+        message_set: dict, psk64: str = TEST_PSK64, port: int = 443
+    ) -> ApplianceServer:
+        appliance = ApplianceServer(message_set, psk64)
 
         psk = urlsafe_b64decode(psk64 + "===")
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -82,9 +84,12 @@ async def appliance_server_aes() -> AsyncGenerator[
     servers: list[TestServer] = []
 
     async def go(
-        psk64: str = TEST_PSK64, iv64: str = TEST_IV64, port: int = 80
+        message_set: dict,
+        psk64: str = TEST_PSK64,
+        iv64: str = TEST_IV64,
+        port: int = 80,
     ) -> ApplianceServer:
-        appliance = ApplianceServerAes(psk64, iv64)
+        appliance = ApplianceServerAes(message_set, psk64, iv64)
 
         app = web.Application()
         app.add_routes([web.get("/homeconnect", appliance.websocket_handler)])

@@ -13,6 +13,9 @@ from homeconnect_websocket.testutils import TEST_APP_ID, TEST_APP_NAME
 
 from const import (
     CLIENT_MESSAGE_ID,
+    DEVICE_MESSAGE_SET_1,
+    DEVICE_MESSAGE_SET_2,
+    DEVICE_MESSAGE_SET_3,
     SERVER_MESSAGE_ID,
     SESSION_ID,
 )
@@ -30,7 +33,7 @@ async def test_session_connect_tls(
     appliance_server_tls: Callable[..., Awaitable[ApplianceServer]],
 ) -> None:
     """Test Session connection."""
-    appliance_server = await appliance_server_tls()
+    appliance_server = await appliance_server_tls(DEVICE_MESSAGE_SET_1)
     session = HCSession(
         appliance_server.host,
         app_name=TEST_APP_NAME,
@@ -65,7 +68,7 @@ async def test_session_connect_aes(
     appliance_server_aes: Callable[..., Awaitable[ApplianceServerAes]],
 ) -> None:
     """Test Session connection failing."""
-    appliance_server = await appliance_server_aes()
+    appliance_server = await appliance_server_aes(DEVICE_MESSAGE_SET_1)
     session = HCSession(
         appliance_server.host,
         app_name=TEST_APP_NAME,
@@ -97,11 +100,140 @@ async def test_session_connect_aes(
 
 
 @pytest.mark.asyncio
-async def test_session_handshake(
+async def test_session_handshake_1(
     appliance_server: Callable[..., Awaitable[ApplianceServer]],
 ) -> None:
-    """Test Session Handshake."""
-    appliance = await appliance_server()
+    """Test Session Handshake with Message set 1."""
+    appliance = await appliance_server(DEVICE_MESSAGE_SET_1)
+    session = HCSession(
+        appliance.host,
+        app_name=TEST_APP_NAME,
+        app_id=TEST_APP_ID,
+        psk64=None,
+    )
+    message_handler = AsyncMock()
+    await session.connect(message_handler)
+    await session.close()
+
+    assert appliance.messages[0] == Message(
+        sid=10,
+        msg_id=20,
+        resource="/ei/initialValues",
+        version=2,
+        action=Action.RESPONSE,
+        data=[
+            {
+                "deviceType": "Application",
+                "deviceName": "Test Device",
+                "deviceID": "c6683b15",
+            }
+        ],
+    )
+
+    assert appliance.messages[1] == Message(
+        sid=10, msg_id=30, resource="/ci/services", version=1, action=Action.GET
+    )
+
+    assert appliance.messages[2] == Message(
+        sid=10, msg_id=31, resource="/iz/info", version=1, action=Action.GET
+    )
+
+    assert appliance.messages[3] == Message(
+        sid=10, msg_id=32, resource="/ei/deviceReady", version=2, action=Action.NOTIFY
+    )
+
+    assert appliance.messages[4] == Message(
+        sid=10, msg_id=33, resource="/ni/info", version=1, action=Action.GET
+    )
+
+    assert appliance.messages[5] == Message(
+        sid=10,
+        msg_id=34,
+        resource="/ro/allDescriptionChanges",
+        version=1,
+        action=Action.GET,
+    )
+
+    assert appliance.messages[6] == Message(
+        sid=10,
+        msg_id=35,
+        resource="/ro/allMandatoryValues",
+        version=1,
+        action=Action.GET,
+    )
+
+
+@pytest.mark.asyncio
+async def test_session_handshake_2(
+    appliance_server: Callable[..., Awaitable[ApplianceServer]],
+) -> None:
+    """Test Session Handshake with Message set 2."""
+    appliance = await appliance_server(DEVICE_MESSAGE_SET_2)
+    session = HCSession(
+        appliance.host,
+        app_name=TEST_APP_NAME,
+        app_id=TEST_APP_ID,
+        psk64=None,
+    )
+    message_handler = AsyncMock()
+    await session.connect(message_handler)
+    await session.close()
+
+    assert appliance.messages[0] == Message(
+        sid=10,
+        msg_id=20,
+        resource="/ei/initialValues",
+        version=1,
+        action=Action.RESPONSE,
+        data=[
+            {
+                "deviceType": 2,
+                "deviceName": "Test Device",
+                "deviceID": "c6683b15",
+            }
+        ],
+    )
+
+    assert appliance.messages[1] == Message(
+        sid=10, msg_id=30, resource="/ci/services", version=1, action=Action.GET
+    )
+
+    assert appliance.messages[2] == Message(
+        sid=10,
+        msg_id=31,
+        resource="/ci/authentication",
+        version=1,
+        action=Action.GET,
+        data=[{"nonce": ANY}],
+    )
+
+    assert appliance.messages[3] == Message(
+        sid=10, msg_id=32, resource="/ci/info", version=1, action=Action.GET
+    )
+
+    assert appliance.messages[4] == Message(
+        sid=10,
+        msg_id=33,
+        resource="/ro/allDescriptionChanges",
+        version=1,
+        action=Action.GET,
+    )
+
+    assert appliance.messages[5] == Message(
+        sid=10,
+        msg_id=34,
+        resource="/ro/allMandatoryValues",
+        version=1,
+        action=Action.GET,
+    )
+
+
+@pytest.mark.asyncio
+async def test_session_handshake_3(
+    appliance_server: Callable[..., Awaitable[ApplianceServer]],
+) -> None:
+    """Test Session Handshake with Message set 2."""
+    appliance = await appliance_server(DEVICE_MESSAGE_SET_3)
     session = HCSession(
         appliance.host,
         app_name=TEST_APP_NAME,
@@ -135,42 +267,35 @@ async def test_session_handshake(
         sid=10,
         msg_id=31,
         resource="/ci/authentication",
-        version=3,
+        version=2,
         action=Action.GET,
         data=[{"nonce": ANY}],
     )
 
     assert appliance.messages[3] == Message(
-        sid=10, msg_id=32, resource="/ci/info", version=3, action=Action.GET
+        sid=10, msg_id=32, resource="/ci/info", version=2, action=Action.GET
     )
 
     assert appliance.messages[4] == Message(
-        sid=10, msg_id=33, resource="/iz/info", version=1, action=Action.GET
+        sid=10, msg_id=33, resource="/ei/deviceReady", version=2, action=Action.NOTIFY
     )
 
     assert appliance.messages[5] == Message(
-        sid=10, msg_id=34, resource="/ei/deviceReady", version=2, action=Action.NOTIFY
+        sid=10, msg_id=34, resource="/ni/info", version=1, action=Action.GET
     )
 
     assert appliance.messages[6] == Message(
-        sid=10, msg_id=35, resource="/ni/info", version=1, action=Action.GET
-    )
-    assert appliance.messages[7] == Message(
         sid=10,
-        msg_id=36,
-        resource="/ro/allMandatoryValues",
+        msg_id=35,
+        resource="/ro/allDescriptionChanges",
         version=1,
         action=Action.GET,
     )
 
-    assert appliance.messages[8] == Message(
-        sid=10, msg_id=37, resource="/ro/values", version=1, action=Action.GET
-    )
-
-    assert appliance.messages[9] == Message(
+    assert appliance.messages[7] == Message(
         sid=10,
-        msg_id=38,
-        resource="/ro/allDescriptionChanges",
+        msg_id=36,
+        resource="/ro/allMandatoryValues",
         version=1,
         action=Action.GET,
     )

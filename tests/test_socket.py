@@ -11,7 +11,7 @@ from Crypto.Random import get_random_bytes
 from homeconnect_websocket.hc_socket import AesSocket, TlsSocket
 from homeconnect_websocket.testutils import TEST_IV64, TEST_PSK64
 
-from const import CLIENT_MESSAGE_ID, SERVER_MESSAGE_ID, SESSION_ID
+from const import CLIENT_MESSAGE_ID, DEVICE_MESSAGE_SET_1, SERVER_MESSAGE_ID, SESSION_ID
 from utils import AesServerEncryption, ApplianceServer, ApplianceServerAes
 
 if TYPE_CHECKING:
@@ -23,7 +23,7 @@ async def test_connect_tls(
     appliance_server_tls: Callable[..., Awaitable[ApplianceServer]],
 ) -> None:
     """Test TLS Socket connect."""
-    appliance_server = await appliance_server_tls()
+    appliance_server = await appliance_server_tls(DEVICE_MESSAGE_SET_1)
     socket = TlsSocket(appliance_server.host, psk64=appliance_server.psk64)
     assert socket.closed
     await socket.connect()
@@ -53,7 +53,7 @@ async def test_connect_aes(
     appliance_server_aes: Callable[..., Awaitable[ApplianceServerAes]],
 ) -> None:
     """Test AES Socket connect."""
-    appliance_server = await appliance_server_aes()
+    appliance_server = await appliance_server_aes(DEVICE_MESSAGE_SET_1)
     socket = AesSocket(
         host=appliance_server.host,
         psk64=appliance_server.psk64,
@@ -87,7 +87,7 @@ async def test_ase_padding(
     appliance_server_aes: Callable[..., Awaitable[ApplianceServerAes]],
 ) -> None:
     """Test AES Socket padding."""
-    appliance_server = await appliance_server_aes()
+    appliance_server = await appliance_server_aes(DEVICE_MESSAGE_SET_1)
     socket = AesSocket(
         host=appliance_server.host,
         psk64=appliance_server.psk64,
