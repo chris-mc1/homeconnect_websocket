@@ -276,7 +276,7 @@ class HCSession:
             self.set_service_versions(response_services)
             await self._call_ext_message_handler(response_services)
 
-            if self.service_versions.get("ci", 1) == 1:
+            if self.service_versions.get("ci", 1) < 3:  # noqa: PLR2004
                 # authenticate
                 token = urlsafe_b64encode(get_random_bytes(32)).decode("UTF-8")
                 token = token.replace("=", "")
@@ -290,6 +290,7 @@ class HCSession:
                     message_info = Message(resource="/ci/info")
                     response_info = await self.send_sync(message_info)
                     await self._call_ext_message_handler(response_info)
+
             if "iz" in self.service_versions:
                 message_info = Message(resource="/iz/info")
                 response_info = await self.send_sync(message_info)
