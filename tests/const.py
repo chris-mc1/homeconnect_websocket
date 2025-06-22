@@ -102,3 +102,67 @@ DEVICE_MESSAGE_SET_1 = {
         ],
     },
 }
+
+DEVICE_MESSAGE_SET_2 = {
+    "init": Message(
+        sid=SESSION_ID,
+        resource="/ei/initialValues",
+        version=1,
+        action=Action.POST,
+        data=[{"edMsgID": CLIENT_MESSAGE_ID}],
+    ),
+    "services": [
+        {"service": "ro", "version": 1},
+        {"service": "ei", "version": 1},
+        {"service": "ci", "version": 1},
+    ],
+    "responses": {
+        "/ci/authentication": [
+            {"response": "gkkJ9rRlmilrqoT1pJpNOZvM2686nYHcEsVTOCqfRk8"}
+        ],
+        "/ci/info": [
+            {
+                "deviceID": "240210038618500561",
+                "eNumber": "FFAA1234/11",
+                "brand": "HomeConnectWS",
+                "vib": "FFAA1234",
+                "mac": "23-43-F2-78-D7-23",
+                "haVersion": "1.1",
+                "swVersion": "1.2.12.20211004153146",
+                "hwVersion": "1.1.0.5",
+                "deviceType": 21,
+                "deviceInfo": "DISHWASHER",
+                "customerIndex": 33,
+                "serialNumber": "240210038618500561",
+                "fdString": "0686",
+                "shipSki": "FBD7EDDF6A5BB504533D5397532FF21C1AFEF706",
+            },
+        ],
+        "/ci/tzInfo": [{"tz": ""}],
+        "/ci/networkDetails": [
+            {
+                "IPv4": {
+                    "ipAddress": "192.168.1.50",
+                    "prefixSize": 24,
+                    "gateway": "192.168.1.1",
+                    "dnsServer": "192.168.1.1",
+                },
+                "IPv6": {
+                    "ipAddress": "0011:2233:4455:6677:8899:AABB:CCDD:EEFF",
+                    "prefixSize": 64,
+                    "gateway": "fe80::0011:2233:4455:6677",
+                    "dnsServer": "fe80::0011:2233:4455:6677",
+                },
+            }
+        ],
+        "/ci/wifiSetting": [
+            {"SSID": "ssid", "AutomaticIPv4": True, "AutomaticIPv6": True}
+        ],
+        "/ro/allDescriptionChanges": [
+            {"uid": 555, "parentUID": 261, "access": "NONE"},
+        ],
+        "/ro/allMandatoryValues": [
+            {"uid": 3, "value": True},
+        ],
+    },
+}
