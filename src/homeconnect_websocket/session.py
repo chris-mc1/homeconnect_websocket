@@ -74,10 +74,8 @@ class HCSession:
         self._host = host
         self._psk64 = psk64
         self._iv64 = iv64
-        self._device_info = {
-            "deviceName": app_name,
-            "deviceID": app_id,
-        }
+        self._app_name = app_name
+        self._app_id = app_id
 
         self._recv_loop_event = asyncio.Event()
         self.handshake = True
@@ -265,10 +263,15 @@ class HCSession:
     async def _handshake(self, message_init: Message) -> None:
         try:
             # responde to init message
-            self._device_info["deviceType"] = (
-                2 if message_init.version == 1 else "Application"
+            await self.send(
+                message_init.responde(
+                    {
+                        "deviceType": 2 if message_init.version == 1 else "Application",
+                        "deviceName": self._app_name,
+                        "deviceID": self._app_id,
+                    }
+                )
             )
-            await self.send(message_init.responde(self._device_info))
 
             # request available services
             message_services = Message(resource="/ci/services", version=1)

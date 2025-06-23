@@ -129,6 +129,13 @@ async def test_session_handshake_1(
             }
         ],
     )
+    assert list(appliance.messages[0].data[0].items()) == list(
+        {
+            "deviceType": "Application",
+            "deviceName": "Test Device",
+            "deviceID": "c6683b15",
+        }.items()
+    )
 
     assert appliance.messages[1] == Message(
         sid=10, msg_id=30, resource="/ci/services", version=1, action=Action.GET
@@ -192,6 +199,13 @@ async def test_session_handshake_2(
                 "deviceID": "c6683b15",
             }
         ],
+    )
+    assert list(appliance.messages[0].data[0].items()) == list(
+        {
+            "deviceType": 2,
+            "deviceName": "Test Device",
+            "deviceID": "c6683b15",
+        }.items()
     )
 
     assert appliance.messages[1] == Message(
@@ -257,6 +271,13 @@ async def test_session_handshake_3(
                 "deviceID": "c6683b15",
             }
         ],
+    )
+    assert list(appliance.messages[0].data[0].items()) == list(
+        {
+            "deviceType": "Application",
+            "deviceName": "Test Device",
+            "deviceID": "c6683b15",
+        }.items()
     )
 
     assert appliance.messages[1] == Message(
