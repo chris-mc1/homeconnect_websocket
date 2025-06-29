@@ -436,6 +436,17 @@ REFERENCE_DISCRIPTION_SHORT = {
             "refCID": 3,
             "refDID": 128,
         },
+        {
+            "uid": 4107,
+            "name": "Event.3",
+            "contentType": "enumeration",
+            "protocolType": "Integer",
+            "enumeration": {"1": "Present"},
+            "handling": "acknowledge",
+            "level": "hint",
+            "refCID": 3,
+            "refDID": 128,
+        },
     ],
     "command": [
         {

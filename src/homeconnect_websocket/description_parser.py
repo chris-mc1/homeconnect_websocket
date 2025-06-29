@@ -67,7 +67,13 @@ def add_enum_subsets(features: FeatureMap, description: list[dict]) -> None:
             ):
                 super_enum = features["enumeration"][int(enum["@subsetOf"], base=16)]
                 subset_enum = {}
-                for value in enum["enumeration"]:
+
+                # Ensure enumeration is always a list
+                enumeration_list = enum["enumeration"]
+                if not isinstance(enumeration_list, list):
+                    enumeration_list = [enumeration_list]
+
+                for value in enumeration_list:
                     subset_enum[int(value["@value"])] = super_enum[int(value["@value"])]
                 features["enumeration"][int(enum["@enid"], base=16)] = subset_enum
 
