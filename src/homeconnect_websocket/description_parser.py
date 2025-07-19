@@ -67,13 +67,7 @@ def add_enum_subsets(features: FeatureMap, description: list[dict]) -> None:
             ):
                 super_enum = features["enumeration"][int(enum["@subsetOf"], base=16)]
                 subset_enum = {}
-
-                # Ensure enumeration is always a list
-                enumeration_list = enum["enumeration"]
-                if not isinstance(enumeration_list, list):
-                    enumeration_list = [enumeration_list]
-
-                for value in enumeration_list:
+                for value in enum["enumeration"]:
                     subset_enum[int(value["@value"])] = super_enum[int(value["@value"])]
                 features["enumeration"][int(enum["@enid"], base=16)] = subset_enum
 
@@ -239,6 +233,8 @@ def parse_device_description(
                 "commandList",
                 "program",
                 "programGroup",
+                "enumeration",
+                "enumerationType",
             ),
         )["device"]
     except ExpatError as exc:
