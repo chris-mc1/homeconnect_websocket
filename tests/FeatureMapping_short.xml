@@ -7,6 +7,7 @@
     <feature refUID="1006">Setting.2</feature>
     <feature refUID="1009">Event.1</feature>
     <feature refUID="100A">Event.2</feature>
+    <feature refUID="100B">Event.3</feature>
     <feature refUID="100D">Command.1</feature>
     <feature refUID="100E">Command.2</feature>
     <feature refUID="1011">Option.1</feature>

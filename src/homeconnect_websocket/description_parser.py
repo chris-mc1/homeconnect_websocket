@@ -233,6 +233,8 @@ def parse_device_description(
                 "commandList",
                 "program",
                 "programGroup",
+                "enumeration",
+                "enumerationType",
             ),
         )["device"]
     except ExpatError as exc:

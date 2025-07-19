@@ -26,6 +26,7 @@
         <event enumerationType="3001" handling="acknowledge" level="hint" refCID="03" refDID="80" uid="1009" />
         <eventList uid="0006">
             <event enumerationType="3001" handling="acknowledge" level="hint" refCID="03" refDID="80" uid="100A" />
+            <event enumerationType="3003" handling="acknowledge" level="hint" refCID="03" refDID="80" uid="100B" />
         </eventList>
     </eventList>
     <commandList access="writeOnly" available="true" uid="0007">
@@ -59,6 +60,9 @@
             <enumeration value="0" />
             <enumeration value="1" />
             <enumeration value="2" />
+        </enumerationType>
+        <enumerationType enid="3003" subsetOf="3001">
+            <enumeration value="1" />
         </enumerationType>
     </enumerationTypeList>
 </device>
