@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .const import ERROR_CODES
+
 
 class HomeConnectError(Exception):
     """General HomeConnect exception."""
@@ -20,11 +22,12 @@ class CodeResponsError(HomeConnectError):
 
         """
         self.code = code
+        self.message = ERROR_CODES.get(code, "Unknown")
         self.resource = resource
         super().__init__(*args)
 
     def __str__(self) -> str:
-        return f"{self.code}, resource={self.resource}"
+        return f"{self.code}: {self.message}, resource={self.resource}"
 
 
 class AccessError(HomeConnectError):
