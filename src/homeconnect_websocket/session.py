@@ -13,6 +13,7 @@ from Crypto.Random import get_random_bytes
 from .const import (
     DEFAULT_HANDSHAKE_TIMEOUT,
     DEFAULT_SEND_TIMEOUT,
+    ERROR_CODES,
     MAX_CONNECT_TIMEOUT,
     TIMEOUT_INCREASE_FACTOR,
 )
@@ -407,8 +408,9 @@ class HCSession:
 
         if response_message.code:
             self._logger.debug(
-                "Received Code %s for Message %s, resource: %s",
+                "Received Code %s: %s for Message %s, resource: %s",
                 response_message.code,
+                ERROR_CODES.get(response_message.code, "Unknown"),
                 send_message.msg_id,
                 response_message.resource,
             )
