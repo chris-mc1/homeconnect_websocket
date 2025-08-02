@@ -484,6 +484,7 @@ class Program(AvailableMixin, Entity):
         if "options" in description:
             for option in description["options"]:
                 self._options.append(appliance.entities_uid[option["refUID"]])
+        self._execution = Execution(description.get("execution", "selectandstart"))
 
     async def select(self) -> None:
         """Select this Program."""
@@ -512,6 +513,11 @@ class Program(AvailableMixin, Entity):
             data={"program": self._uid, "options": _options},
         )
         await self._appliance.session.send_sync(message)
+
+    @property
+    def execution(self) -> Execution:
+        """Execution type."""
+        return self._execution
 
 
 class ActiveProgram(AccessMixin, AvailableMixin, Entity):
