@@ -495,17 +495,25 @@ class Program(AvailableMixin, Entity):
         )
         await self._appliance.session.send_sync(message)
 
-    async def start(self, options: dict[str, str | int | bool] | None = None) -> None:
+    async def start(
+        self,
+        options: dict[str, str | int | bool] | None = None,
+        *,
+        override_options: bool = False,
+    ) -> None:
         """Start this Program, select might be required first."""
         if options is None:
             options = {}
         _options = [
-            {"uid": option.uid, "value": option.value_shadow}
-            for option in self._options
-            if option.access == Access.READ_WRITE and option.uid not in options
+            {"uid": option_uid, "value": option_value}
+            for option_uid, option_value in options.items()
         ]
-        for option_uid, option_value in options.items():
-            _options.append({"uid": option_uid, "value": option_value})
+        if override_options is False:
+            _options.extend(
+                {"uid": option.uid, "value": option.value_shadow}
+                for option in self._options
+                if option.access == Access.READ_WRITE and option.uid not in options
+            )
 
         message = Message(
             resource="/ro/activeProgram",
