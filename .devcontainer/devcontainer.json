@@ -32,7 +32,7 @@
     "runArgs": [
         "--memory=2g"
     ],
-	"features": {
-  "ghcr.io/devcontainers/features/github-cli:1": {}
-}
+    "features": {
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    }
 }
