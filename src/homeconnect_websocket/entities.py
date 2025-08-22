@@ -230,7 +230,7 @@ class Entity(ABC):
         if the Entity is an Enum entity the value will be resolve to the actual value.
         """
         if self._enumeration and self._value is not None:
-            return self._enumeration[self._value]
+            return self._enumeration.get(self._value)
         return self._value
 
     async def set_value(self, value: str | int | bool) -> None:  # noqa: FBT001
