@@ -152,7 +152,7 @@ class HCSession:
                 await self.close()
 
         except (aiohttp.ClientConnectionError, aiohttp.ClientConnectorSSLError):
-            self._logger.exception("Error connecting to Appliance")
+            self._logger.debug("Error connecting to Appliance", exc_info=True)
             raise
         except TimeoutError:
             if self._recv_task.cancel():
@@ -161,7 +161,7 @@ class HCSession:
             if self._handshake_task and self._handshake_task.cancel():
                 with contextlib.suppress(asyncio.CancelledError):
                     await self._handshake_task
-            self._logger.error("Connection Error")  # noqa: TRY400
+            self._logger.debug("Connection Timeout")
             raise
 
     async def _reset(self) -> None:
@@ -192,7 +192,10 @@ class HCSession:
                     message_obj = load_message(message)
                     await self._message_handler(message_obj)
             except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError) as ex:
-                self._logger.warning(ex)
+                if self.retry_count == 0:
+                    self._logger.warning(ex)
+                else:
+                    self._logger.debug(ex)
                 timeout = TIMEOUT_INCREASE_FACTOR**self.retry_count
                 self.retry_count += 1
                 await asyncio.sleep(min(timeout, MAX_CONNECT_TIMEOUT))
@@ -329,7 +332,7 @@ class HCSession:
             self.retry_count = 0
             self._logger.info("Handshake completed")
         except asyncio.CancelledError:
-            self._logger.exception("Handshake cancelled")
+            self._logger.debug("Handshake cancelled")
             raise
         except CodeResponsError:
             self._logger.exception("Received Code response during Handshake")
