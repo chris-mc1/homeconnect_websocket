@@ -391,6 +391,16 @@ class MinMaxMixin(Entity):
         if "stepSize" in description:
             self._step = float(description["stepSize"])
 
+    async def update(self, values: dict) -> None:
+        """Update the entity state and execute callbacks."""
+        if "min" in values:
+            self._min = float(values["min"])
+        if "max" in values:
+            self._max = float(values["max"])
+        if "stepSize" in values:
+            self._step = float(values["stepSize"])
+        await super().update(values)
+
     @property
     def min(self) -> float | None:
         """Minimum value."""
