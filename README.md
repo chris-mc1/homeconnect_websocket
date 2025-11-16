@@ -30,7 +30,7 @@ with Path("[serialNumber]_FeatureMapping.xml").open() as file:
 description = parse_device_description(DeviceDescription, FeatureMapping)
 
 # Save Description to File for later use
-with Path("DeviceDescription.json", "w").open() as file:
+with Path("DeviceDescription.json").open(mode='w') as file:
     json.dump(description, file)
 
 ```
