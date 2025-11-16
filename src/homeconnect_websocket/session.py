@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import time
 from base64 import urlsafe_b64encode
 from json import JSONDecodeError
 from typing import TYPE_CHECKING
@@ -88,6 +89,7 @@ class HCSession:
         self.service_versions = {}
         self._tasks = set()
         self.retry_count = 0
+        self.last_msg_time = 0
 
         if logger is None:
             self._logger = logging.getLogger(__name__)
@@ -189,6 +191,7 @@ class HCSession:
                     await self._socket.connect()
                 async for message in self._socket:
                     # recv messages
+                    self.last_msg_time = time.time()
                     message_obj = load_message(message)
                     await self._message_handler(message_obj)
             except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError) as ex:
