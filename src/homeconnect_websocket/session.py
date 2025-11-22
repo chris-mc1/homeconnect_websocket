@@ -90,6 +90,7 @@ class HCSession:
         self._tasks = set()
         self.retry_count = 0
         self.last_msg_time = 0
+        self.disconnect_time = 0
 
         if logger is None:
             self._logger = logging.getLogger(__name__)
@@ -196,6 +197,7 @@ class HCSession:
                     await self._message_handler(message_obj)
             except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError) as ex:
                 if self.retry_count == 0:
+                    self.disconnect_time = time.time()
                     self._logger.warning(ex)
                 else:
                     self._logger.debug(ex)
