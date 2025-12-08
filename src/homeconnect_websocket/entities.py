@@ -496,6 +496,12 @@ class Program(AvailableMixin, Entity):
                 self._options.append(appliance.entities_uid[option["refUID"]])
         self._execution = Execution(description.get("execution", "selectandstart"))
 
+    async def update(self, values: dict) -> None:
+        """Update the entity state and execute callbacks."""
+        if "execution" in values:
+            self._execution = Execution(values["execution"])
+        await super().update(values)
+
     async def select(self) -> None:
         """Select this Program."""
         message = Message(
@@ -536,6 +542,12 @@ class Program(AvailableMixin, Entity):
     def execution(self) -> Execution:
         """Execution type."""
         return self._execution
+
+    def dump(self) -> dict:
+        """Dump Entity state."""
+        state = super().dump()
+        state["execution"] = self.execution
+        return state
 
 
 class ActiveProgram(AccessMixin, AvailableMixin, Entity):
