@@ -17,6 +17,7 @@ from .entities import (
     Setting,
     Status,
 )
+from .helpers import CallbackManager
 from .message import Action, Message
 from .session import HCSession
 
@@ -55,6 +56,7 @@ class HomeAppliance:
 
     _selected_program: SelectedProgram | None = None
     _active_program: ActiveProgram | None = None
+    callback_manager: CallbackManager
 
     def __init__(  # noqa: PLR0913
         self,
@@ -88,6 +90,7 @@ class HomeAppliance:
             self._logger = logger.getChild("appliance")
         self.session = HCSession(host, app_name, app_id, psk64, iv64, session, logger)
         self.info = description.get("info", {})
+        self.callback_manager = CallbackManager(self._logger)
 
         self.entities_uid = {}
         self.entities = {}
@@ -101,7 +104,8 @@ class HomeAppliance:
 
     async def connect(self) -> None:
         """Open Connection with Appliance."""
-        await self.session.connect(self._message_handler)
+        async with self.callback_manager:
+            await self.session.connect(self._message_handler)
 
     async def close(self) -> None:
         """Close Connection with Appliance."""
@@ -126,12 +130,13 @@ class HomeAppliance:
 
     async def _update_entities(self, data: list[dict]) -> None:
         """Update entities from Message data."""
-        for entity in data:
-            uid = int(entity["uid"])
-            if uid in self.entities_uid:
-                await self.entities_uid[uid].update(entity)
-            else:
-                self._logger.debug("Recived Update for unkown entity %s", uid)
+        async with self.callback_manager:
+            for entity in data:
+                uid = int(entity["uid"])
+                if uid in self.entities_uid:
+                    await self.entities_uid[uid].update(entity)
+                else:
+                    self._logger.debug("Recived Update for unkown entity %s", uid)
 
     def _create_entities(self, description: DeviceDescription) -> None:
         """Create Entities from Device description."""
