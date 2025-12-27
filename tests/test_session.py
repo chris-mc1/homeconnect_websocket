@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-)
-from unittest.mock import ANY, AsyncMock
+import asyncio
+from typing import TYPE_CHECKING
+from unittest.mock import ANY, AsyncMock, call
 
 import aiohttp
 import pytest
 from homeconnect_websocket.message import Action, Message
-from homeconnect_websocket.session import HCSession
+from homeconnect_websocket.session import ConnectionState, HCSession
 from homeconnect_websocket.testutils import TEST_APP_ID, TEST_APP_NAME
 
 from const import (
@@ -334,3 +333,43 @@ async def test_session_connect_failed() -> None:
     with pytest.raises(aiohttp.ClientConnectionError):
         await session.connect(AsyncMock())
     assert not session.connected
+
+
+@pytest.mark.asyncio
+async def test_session_connect_callback(
+    appliance_server: Callable[..., Awaitable[ApplianceServer]],
+) -> None:
+    """Test Session connection."""
+    appliance = await appliance_server(DEVICE_MESSAGE_SET_3)
+    session = HCSession(
+        appliance.host,
+        app_name=TEST_APP_NAME,
+        app_id=TEST_APP_ID,
+        psk64=None,
+    )
+    session.handshake = False
+    session._socket._owned_session = False
+    session.connection_state_callback = AsyncMock()
+    message_handler = AsyncMock()
+
+    assert not session.connected
+    await session.connect(message_handler)
+    assert session.connected
+
+    await session._socket.close()
+    assert not session.connected
+
+    await asyncio.sleep(1)
+
+    session._socket._owned_session = True
+    await session.close()
+    assert not session.connected
+
+    session.connection_state_callback.assert_has_awaits(
+        [
+            call(ConnectionState.CONNECTED),
+            call(ConnectionState.DISCONNECTED),
+            call(ConnectionState.CONNECTED),
+            call(ConnectionState.CLOSED),
+        ]
+    )

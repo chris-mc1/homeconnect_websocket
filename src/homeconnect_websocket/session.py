@@ -5,6 +5,7 @@ import contextlib
 import logging
 import time
 from base64 import urlsafe_b64encode
+from enum import StrEnum, auto
 from json import JSONDecodeError
 from typing import TYPE_CHECKING
 
@@ -26,11 +27,29 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
 
+class ConnectionState(StrEnum):
+    """Session connection state."""
+
+    CONNECTED = auto()
+    """Session is connected"""
+    DISCONNECTED = auto()
+    """Session is disconnected, trying to reconnect"""
+    CLOSED = auto()
+    """Session is closed"""
+
+
 class HCSession:
     """HomeConnect Session."""
 
     handshake: bool
     """Automatic Handshake"""
+    connection_state: ConnectionState = ConnectionState.CLOSED
+    """Current connection state"""
+    connection_state_callback: (
+        Callable[[ConnectionState], None | Awaitable[None]] | None
+    ) = None
+    """Called when connection state changes"""
+
     service_versions: dict
     _sid: int | None = None
     _last_msg_id: int | None = None
@@ -172,6 +191,7 @@ class HCSession:
         self._recv_loop_event.clear()
         self.connected_event.clear()
         self._response_messages.clear()
+        await self._set_connection_state(ConnectionState.DISCONNECTED)
         # Set all response events
         async with self._response_lock:
             for event in self._response_events.values():
@@ -229,6 +249,7 @@ class HCSession:
                 self._logger.info("Connected, no handshake")
                 self.connected_event.set()
                 self._recv_loop_event.set()
+                await self._set_connection_state(ConnectionState.CONNECTED)
                 self.retry_count = 0
                 await self._call_ext_message_handler(message)
 
@@ -258,6 +279,21 @@ class HCSession:
         task = asyncio.create_task(self._ext_message_handler(message))
         self._tasks.add(task)
         task.add_done_callback(self._done_callback)
+
+    async def _set_connection_state(self, state: ConnectionState) -> None:
+        """
+        Set connection state and execute callback on change.
+
+        Args:
+        ----
+        state (ConnectionState): connection state
+
+        """
+        state_change = self.connection_state != state
+        self.connection_state = state
+
+        if state_change and self.connection_state_callback:
+            await self.connection_state_callback(state)
 
     def _done_callback(self, task: asyncio.Task) -> None:
         if exc := task.exception():
@@ -334,6 +370,9 @@ class HCSession:
             self._recv_loop_event.set()
             self.retry_count = 0
             self._logger.info("Handshake completed")
+
+            await self._set_connection_state(ConnectionState.CONNECTED)
+
         except asyncio.CancelledError:
             self._logger.debug("Handshake cancelled")
             raise
@@ -352,6 +391,7 @@ class HCSession:
             self._recv_task.cancel()
         if self._socket:
             await self._socket.close()
+        await self._set_connection_state(ConnectionState.CLOSED)
         self._socket = None
 
     def _set_message_info(self, message: Message) -> None:
