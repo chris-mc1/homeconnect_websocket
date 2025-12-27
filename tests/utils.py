@@ -51,7 +51,9 @@ class ApplianceServer:
             else:
                 self.messages.append(hc_msg)
                 await self.message_handler(hc_msg)
-        return self.ws
+        ws = self.ws
+        self.ws = None
+        return ws
 
     def _reset(self) -> None:
         self.mid = SERVER_MESSAGE_ID

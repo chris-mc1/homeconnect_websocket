@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 from abc import ABC
 from enum import StrEnum
@@ -179,19 +178,7 @@ class Entity(ABC):
             self._value_shadow = self._value
 
         for callback in self._callbacks:
-            try:
-                task = asyncio.create_task(callback(self))
-                self._tasks.add(task)
-                task.add_done_callback(self._done_callback)
-            except Exception:
-                _LOGGER.exception("Callback for %s raised an Exception", self.name)
-
-    def _done_callback(self, task: asyncio.Task) -> None:
-        if exc := task.exception():
-            _LOGGER.exception(
-                "Exception in callback for entity %s", self.name, exc_info=exc
-            )
-        self._tasks.discard(task)
+            await self._appliance.callback_manager.schedule_callback(callback, self)
 
     def register_callback(self, callback: Callable[[Entity], Coroutine]) -> None:
         """Register update callback."""

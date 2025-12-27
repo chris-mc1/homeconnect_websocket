@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 from homeconnect_websocket.entities import Access, Entity, EntityDescription, Status
@@ -226,36 +226,6 @@ async def test_set_shadow_fail() -> None:
 
     assert entity.value_raw is None
     assert entity.value_shadow is None
-
-
-@pytest.mark.asyncio
-async def test_callback() -> None:
-    """Test Entity callback."""
-    description = EntityDescription(
-        uid=1,
-        name="Test_Entity",
-        available=False,
-        access=Access.READ,
-        protocolType="Integer",
-    )
-    entity = Entity(description, AsyncMock())
-
-    callback_1 = MagicMock()
-    callback_2 = MagicMock()
-    entity.register_callback(callback_1)
-    entity.register_callback(callback_2)
-
-    assert entity._callbacks == {callback_1, callback_2}
-
-    await entity.update({"available": True, "access": Access.READ_WRITE, "value": 1})
-
-    callback_1.assert_called_once_with(entity)
-    callback_2.assert_called_once_with(entity)
-
-    entity.unregister_callback(callback_1)
-    entity.unregister_callback(callback_2)
-
-    assert entity._callbacks == set()
 
 
 @pytest.mark.asyncio

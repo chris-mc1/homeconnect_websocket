@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Protocol
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from homeconnect_websocket import HomeAppliance
+from homeconnect_websocket.helpers import CallbackManager
 from homeconnect_websocket.session import HCSession
 
 from .entities import DeviceDescription
@@ -53,6 +55,7 @@ class MockAppliance(HomeAppliance):
         _description = BASE_DESCRIPTION.copy()
         _description.update(description)
         self.info = _description.get("info", {})
+        self.callback_manager = CallbackManager(Mock(spec=logging.Logger))
 
         self.entities_uid = {}
         self.entities = {}
