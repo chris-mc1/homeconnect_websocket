@@ -214,20 +214,17 @@ class AesSocket(HCSocket):
 
     async def _receive(self, message: aiohttp.WSMessage) -> str:
         if message.type != aiohttp.WSMsgType.BINARY:
-            msg = "Message not of Type binary %s"
-            msg.format(str(message))
+            msg = f"Message not of Type binary {message!s}"
             self._logger.warning(msg)
             raise ValueError(msg)
 
         buf = message.data
         if len(buf) < MINIMUM_MESSAGE_LENGTH:
-            msg = "Message to short: %s"
-            msg.format(str(message))
+            msg = f"Message to short: {message!s}"
             self._logger.warning(msg)
             raise ValueError(msg)
         if len(buf) % 16 != 0:
-            msg = "Unaligned Message %s"
-            msg.format(str(message))
+            msg = f"Unaligned Message {message!s}"
             self._logger.warning(msg)
             raise ValueError(msg)
 
@@ -238,8 +235,7 @@ class AesSocket(HCSocket):
         calculated_hmac = hmac.digest(self._mackey, hmac_msg, digest="sha256")[0:16]
 
         if not hmac.compare_digest(recv_hmac, calculated_hmac):
-            msg = "HMAC Failure: %s"
-            msg.format(str(message))
+            msg = f"HMAC Failure: {message!s}"
             self._logger.warning(msg)
             raise ValueError(msg)
 
@@ -248,8 +244,7 @@ class AesSocket(HCSocket):
         msg = self._aes_decrypt.decrypt(enc_msg)
         pad_len = msg[-1]
         if len(msg) < pad_len:
-            msg = "Padding Error %s"
-            msg.format(str(message))
+            msg = f"Padding Error {message!s}"
             self._logger.warning(msg)
             raise ValueError(msg)
         decoded_msg = msg[0:-pad_len].decode("utf-8")
