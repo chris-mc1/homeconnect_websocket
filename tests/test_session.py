@@ -38,8 +38,8 @@ async def test_session_connect_tls(
         app_name=TEST_APP_NAME,
         app_id=TEST_APP_ID,
         psk64=appliance_server.psk64,
+        handshake=False,
     )
-    session.handshake = False
     message_handler = AsyncMock()
 
     assert not session.connected
@@ -74,8 +74,8 @@ async def test_session_connect_aes(
         app_id=TEST_APP_ID,
         psk64=appliance_server.psk64,
         iv64=appliance_server.iv64,
+        handshake=False,
     )
-    session.handshake = False
     message_handler = AsyncMock()
 
     assert not session.connected
@@ -341,15 +341,16 @@ async def test_session_connect_callback(
 ) -> None:
     """Test Session connection."""
     appliance = await appliance_server(DEVICE_MESSAGE_SET_3)
+    connection_callback = AsyncMock()
     session = HCSession(
         appliance.host,
         app_name=TEST_APP_NAME,
         app_id=TEST_APP_ID,
         psk64=None,
+        handshake=False,
+        connection_callback=connection_callback,
     )
-    session.handshake = False
     session._socket._owned_session = False
-    session.connection_state_callback = AsyncMock()
     message_handler = AsyncMock()
 
     assert not session.connected
@@ -365,7 +366,7 @@ async def test_session_connect_callback(
     await session.close()
     assert not session.connected
 
-    session.connection_state_callback.assert_has_awaits(
+    connection_callback.assert_has_awaits(
         [
             call(ConnectionState.CONNECTED),
             call(ConnectionState.DISCONNECTED),

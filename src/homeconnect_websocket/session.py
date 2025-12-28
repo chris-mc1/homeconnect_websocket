@@ -41,15 +41,7 @@ class ConnectionState(StrEnum):
 class HCSession:
     """HomeConnect Session."""
 
-    handshake: bool
-    """Automatic Handshake"""
     connection_state: ConnectionState = ConnectionState.CLOSED
-    """Current connection state"""
-    connection_state_callback: (
-        Callable[[ConnectionState], None | Awaitable[None]] | None
-    ) = None
-    """Called when connection state changes"""
-
     service_versions: dict
     _sid: int | None = None
     _last_msg_id: int | None = None
@@ -75,8 +67,12 @@ class HCSession:
         app_id: str,
         psk64: str,
         iv64: str | None = None,
+        *,
         session: aiohttp.ClientSession | None = None,
         logger: logging.Logger | None = None,
+        handshake: bool = True,
+        reconect: bool = True,
+        connection_callback: Callable[[ConnectionState], Awaitable[None]] | None = None,
     ) -> None:
         """
         HomeConnect Session.
@@ -90,16 +86,22 @@ class HCSession:
         iv64 (Optional[str]): urlsafe base64 encoded iv64 key (only AES)
         session (Optional[aiohttp.ClientSession]): ClientSession
         logger (Optional[Logger]): Logger
+        handshake (bool): Automatic Handshake
+        reconect (bool): Automatic Reconect
+        connection_callback (Optional[Callable[[ConnectionState], Awaitable[None]]]): Called when connection state changes
 
-        """
+        """  # noqa: E501
         self._host = host
         self._psk64 = psk64
         self._iv64 = iv64
         self._app_name = app_name
         self._app_id = app_id
+        self._handshake = handshake
+        self._reconect = reconect
+        self._connection_callback = connection_callback
 
+        self._loop = asyncio.get_event_loop()
         self._recv_loop_event = asyncio.Event()
-        self.handshake = True
         self._response_messages = {}
         self._response_events = {}
         self._response_lock = asyncio.Lock()
@@ -165,7 +167,7 @@ class HCSession:
                     # loop exited
                     self._logger.error("Receive loop exited unexpectedly")
                 elif self._handshake_task.done():
-                    # loop running, handshake eexited
+                    # loop running, handshake exited
                     if task_exc := self._handshake_task.exception():
                         self._logger.exception("Handshake Exception", exc_info=task_exc)
                         raise task_exc
@@ -199,7 +201,7 @@ class HCSession:
             self._response_events.clear()
 
     async def _recv_loop(self) -> None:
-        while self._socket:
+        while self._socket and self._reconect:
             try:
                 if self._socket.closed:
                     self._logger.debug(
@@ -240,10 +242,12 @@ class HCSession:
             # set new sID, msgID
             self._sid = message.sid
             self._last_msg_id = message.data[0]["edMsgID"]
-            if self.handshake:
+            if self._handshake:
                 # start handshake
                 self._logger.info("Got init message, beginning handshake")
-                self._handshake_task = asyncio.create_task(self._handshake(message))
+                self._handshake_task = asyncio.create_task(
+                    self._handshake_handler(message)
+                )
                 self._handshake_task.add_done_callback(self._recv_loop_done_callback)
             else:
                 self._logger.info("Connected, no handshake")
@@ -292,8 +296,8 @@ class HCSession:
         state_change = self.connection_state != state
         self.connection_state = state
 
-        if state_change and self.connection_state_callback:
-            await self.connection_state_callback(state)
+        if state_change and self._connection_callback:
+            await self._connection_callback(state)
 
     def _done_callback(self, task: asyncio.Task) -> None:
         if exc := task.exception():
@@ -303,7 +307,7 @@ class HCSession:
     def _recv_loop_done_callback(self, _: asyncio.Task) -> None:
         self._recv_loop_event.set()
 
-    async def _handshake(self, message_init: Message) -> None:
+    async def _handshake_handler(self, message_init: Message) -> None:
         try:
             # responde to init message
             await self.send(
