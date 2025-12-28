@@ -71,6 +71,7 @@ class HomeAppliance:
         *,
         session: ClientSession | None = None,
         logger: logging.Logger | None = None,
+        reconect: bool = True,
         connection_callback: Callable[[ConnectionState], Awaitable[None]] | None = None,
     ) -> None:
         """
@@ -86,6 +87,7 @@ class HomeAppliance:
             iv64 (Optional[str]): urlsafe base64 encoded iv64 key (only AES)
             session (Optional[aiohttp.ClientSession]): ClientSession
             logger (Optional[Logger]): Logger
+            reconect (bool): Automatic Reconect
             connection_callback (Optional[Callable[[ConnectionState], Awaitable[None]]]): Called when connection state changes
 
         """  # noqa: E501
@@ -101,6 +103,7 @@ class HomeAppliance:
             iv64,
             session=session,
             logger=logger,
+            reconect=reconect,
             connection_callback=connection_callback,
         )
         self.info = description.get("info", {})
