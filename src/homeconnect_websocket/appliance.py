@@ -19,9 +19,11 @@ from .entities import (
 )
 from .helpers import CallbackManager
 from .message import Action, Message
-from .session import HCSession
+from .session import ConnectionState, HCSession
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from aiohttp import ClientSession
 
 
@@ -66,8 +68,11 @@ class HomeAppliance:
         app_id: str,
         psk64: str,
         iv64: str | None = None,
+        *,
         session: ClientSession | None = None,
         logger: logging.Logger | None = None,
+        reconect: bool = True,
+        connection_callback: Callable[[ConnectionState], Awaitable[None]] | None = None,
     ) -> None:
         """
         HomeConnect Appliance.
@@ -82,13 +87,25 @@ class HomeAppliance:
             iv64 (Optional[str]): urlsafe base64 encoded iv64 key (only AES)
             session (Optional[aiohttp.ClientSession]): ClientSession
             logger (Optional[Logger]): Logger
+            reconect (bool): Automatic Reconect
+            connection_callback (Optional[Callable[[ConnectionState], Awaitable[None]]]): Called when connection state changes
 
-        """
+        """  # noqa: E501
         if logger is None:
             self._logger = logging.getLogger(__name__)
         else:
             self._logger = logger.getChild("appliance")
-        self.session = HCSession(host, app_name, app_id, psk64, iv64, session, logger)
+        self.session = HCSession(
+            host,
+            app_name,
+            app_id,
+            psk64,
+            iv64,
+            session=session,
+            logger=logger,
+            reconect=reconect,
+            connection_callback=connection_callback,
+        )
         self.info = description.get("info", {})
         self.callback_manager = CallbackManager(self._logger)
 
