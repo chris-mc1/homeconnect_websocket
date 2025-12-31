@@ -3,8 +3,8 @@ from __future__ import annotations
 from unittest.mock import AsyncMock
 
 import pytest
+from homeconnect_websocket import AccessError, CodeResponsError
 from homeconnect_websocket.entities import Access, Entity, EntityDescription, Status
-from homeconnect_websocket.errors import AccessError, CodeResponsError
 from homeconnect_websocket.message import Action, Message
 
 

@@ -101,10 +101,10 @@ class HomeAppliance:
             app_id,
             psk64,
             iv64,
-            session=session,
+            aiohttp_session=session,
             logger=logger,
             reconect=reconect,
-            connection_callback=connection_callback,
+            connection_state_callback=connection_callback,
         )
         self.info = description.get("info", {})
         self.callback_manager = CallbackManager(self._logger)
