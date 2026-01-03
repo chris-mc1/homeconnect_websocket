@@ -19,7 +19,7 @@ from .entities import (
 )
 from .helpers import CallbackManager
 from .message import Action, Message
-from .session import ConnectionState, HCSession
+from .session import ConnectionState, HCSession, HCSessionReconnect
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -95,19 +95,34 @@ class HomeAppliance:
             self._logger = logging.getLogger(__name__)
         else:
             self._logger = logger.getChild("appliance")
-        self.session = HCSession(
-            host,
-            app_name,
-            app_id,
-            psk64,
-            iv64,
-            aiohttp_session=session,
-            logger=logger,
-            reconect=reconect,
-            connection_state_callback=connection_callback,
-        )
+
+        if reconect:
+            self.session = HCSessionReconnect(
+                host,
+                app_name,
+                app_id,
+                psk64,
+                iv64,
+                message_handler=self._message_handler,
+                aiohttp_session=session,
+                logger=logger,
+                connection_state_callback=self._connection_callback,
+            )
+        else:
+            self.session = HCSession(
+                host,
+                app_name,
+                app_id,
+                psk64,
+                iv64,
+                message_handler=self._message_handler,
+                aiohttp_session=session,
+                logger=logger,
+                connection_state_callback=self._connection_callback,
+            )
         self.info = description.get("info", {})
         self.callback_manager = CallbackManager(self._logger)
+        self._ext_connection_state_callback = connection_callback
 
         self.entities_uid = {}
         self.entities = {}
@@ -121,8 +136,7 @@ class HomeAppliance:
 
     async def connect(self) -> None:
         """Open Connection with Appliance."""
-        async with self.callback_manager:
-            await self.session.connect(self._message_handler)
+        await self.session.connect()
 
     async def close(self) -> None:
         """Close Connection with Appliance."""
@@ -240,3 +254,22 @@ class HomeAppliance:
             or self._selected_program.value_shadow is None
             else self.entities_uid[self._selected_program.value]
         )
+
+    async def _init(self) -> None:
+        async with self.callback_manager:
+            # request description changes
+            description_changes = await self.session.send_sync(
+                Message(resource="/ro/allDescriptionChanges")
+            )
+            await self._update_entities(description_changes.data)
+
+            # request mandatory values
+            mandatory_values = await self.session.send_sync(
+                Message(resource="/ro/allMandatoryValues")
+            )
+            await self._update_entities(mandatory_values.data)
+
+    async def _connection_callback(self, new_state: ConnectionState) -> None:
+        if new_state == ConnectionState.CONNECTED:
+            self.session.create_task(self._init())
+        self.session.create_task(self._ext_connection_state_callback(new_state))

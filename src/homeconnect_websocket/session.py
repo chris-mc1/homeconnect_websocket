@@ -122,7 +122,7 @@ class HCSessionBase:
         state_change = self.connection_state != new_state
         self.connection_state = new_state
         if state_change and self._connection_state_callback:
-            self._create_task(self._wrap_connection_state_callback(new_state))
+            self.create_task(self._wrap_connection_state_callback(new_state))
 
     async def _wrap_connection_state_callback(self, new_state: ConnectionState) -> None:
         """Call the external message handler."""
@@ -131,9 +131,10 @@ class HCSessionBase:
         except Exception:
             self._logger.exception("Exception in connection state callback")
 
-    def _create_task[R](
+    def create_task[R](
         self, target: Coroutine[Any, Any, R], *, eager_start: bool = False
     ) -> asyncio.Task[R]:
+        """Create a new Task."""
         task: asyncio.Task[R] = self._loop.create_task(target, eager_start=eager_start)
         if eager_start and task.done():
             return
@@ -256,10 +257,10 @@ class HCSession(HCSessionBase):
 
         if self._do_handshake:
             init_message = await self._pre_handshake()
-            self._create_task(self._wrap_recv_loop(), eager_start=True)
+            self.create_task(self._wrap_recv_loop(), eager_start=True)
             await self._handshake(init_message)
         else:
-            self._create_task(self._wrap_recv_loop(), eager_start=True)
+            self.create_task(self._wrap_recv_loop(), eager_start=True)
             self._logger.info("Connected, no handshake")
             self._set_connection_state(ConnectionState.CONNECTED)
 
@@ -348,7 +349,7 @@ class HCSession(HCSessionBase):
                 )
 
         else:
-            self._create_task(self._wrap_message_handler(message))
+            self.create_task(self._wrap_message_handler(message))
 
     async def _wrap_message_handler(self, message: Message) -> None:
         """Call the external message handler."""
@@ -395,7 +396,7 @@ class HCSession(HCSessionBase):
             message_services = Message(resource="/ci/services", version=1)
             response_services = await self.send_sync(message_services)
             self._set_service_versions(response_services)
-            self._create_task(self._wrap_message_handler(response_services))
+            self.create_task(self._wrap_message_handler(response_services))
 
             if self.service_versions.get("ci", 1) < 3:  # noqa: PLR2004
                 # authenticate
@@ -410,12 +411,12 @@ class HCSession(HCSessionBase):
                 with contextlib.suppress(CodeResponsError):
                     message_info = Message(resource="/ci/info")
                     response_info = await self.send_sync(message_info)
-                    self._create_task(self._wrap_message_handler(response_info))
+                    self.create_task(self._wrap_message_handler(response_info))
 
             if "iz" in self.service_versions:
                 message_info = Message(resource="/iz/info")
                 response_info = await self.send_sync(message_info)
-                self._create_task(self._wrap_message_handler(response_info))
+                self.create_task(self._wrap_message_handler(response_info))
 
             if self.service_versions.get("ei", 1) == 2:  # noqa: PLR2004
                 # report device ready
@@ -507,11 +508,11 @@ class HCSessionReconnect(HCSession):
 
                 if self._do_handshake:
                     init_message = await self._pre_handshake()
-                    self._create_task(self._wrap_recv_loop(), eager_start=True)
+                    self.create_task(self._wrap_recv_loop(), eager_start=True)
                     await self._handshake(init_message)
                     break
 
-                self._create_task(self._wrap_recv_loop(), eager_start=True)
+                self.create_task(self._wrap_recv_loop(), eager_start=True)
                 self._logger.info("Connected, no handshake")
                 self._set_connection_state(ConnectionState.CONNECTED)
                 break
@@ -551,6 +552,6 @@ class HCSessionReconnect(HCSession):
                 )
                 if self._reconnect:
                     self._set_connection_state(ConnectionState.RECONNECTING)
-                    self._create_task(self._reconnect_loop())
+                    self.create_task(self._reconnect_loop())
                 else:
                     self._set_connection_state(ConnectionState.ABNORMAL_CLOSURE)
