@@ -256,20 +256,26 @@ class HomeAppliance:
         )
 
     async def _init(self) -> None:
-        async with self.callback_manager:
-            # request description changes
-            description_changes = await self.session.send_sync(
-                Message(resource="/ro/allDescriptionChanges")
-            )
-            await self._update_entities(description_changes.data)
+        try:
+            async with self.callback_manager:
+                # request description changes
+                description_changes = await self.session.send_sync(
+                    Message(resource="/ro/allDescriptionChanges")
+                )
+                await self._update_entities(description_changes.data)
 
-            # request mandatory values
-            mandatory_values = await self.session.send_sync(
-                Message(resource="/ro/allMandatoryValues")
-            )
-            await self._update_entities(mandatory_values.data)
+                # request mandatory values
+                mandatory_values = await self.session.send_sync(
+                    Message(resource="/ro/allMandatoryValues")
+                )
+                await self._update_entities(mandatory_values.data)
+        except Exception:
+            self._logger.exception("Exception during Appliance init")
 
     async def _connection_callback(self, new_state: ConnectionState) -> None:
         if new_state == ConnectionState.CONNECTED:
-            self.session.create_task(self._init())
-        self.session.create_task(self._ext_connection_state_callback(new_state))
+            await self._init()
+        try:
+            await self._ext_connection_state_callback(new_state)
+        except Exception:
+            self._logger.exception("Exception in connection state callback")
