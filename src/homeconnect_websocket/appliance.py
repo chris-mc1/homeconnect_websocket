@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from .callback_manager import CallbackManager
 from .entities import (
     ActiveProgram,
     Command,
@@ -17,9 +18,9 @@ from .entities import (
     Setting,
     Status,
 )
-from .helpers import CallbackManager
 from .message import Action, Message
 from .session import ConnectionState, HCSession, HCSessionReconnect
+from .task_manager import TaskManager
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -58,6 +59,7 @@ class HomeAppliance:
 
     _selected_program: SelectedProgram | None = None
     _active_program: ActiveProgram | None = None
+    _task_manager: TaskManager
     callback_manager: CallbackManager
 
     def __init__(  # noqa: PLR0913
@@ -96,6 +98,8 @@ class HomeAppliance:
         else:
             self._logger = logger.getChild("appliance")
 
+        self._task_manager = TaskManager()
+
         if reconect:
             self.session = HCSessionReconnect(
                 host,
@@ -107,6 +111,7 @@ class HomeAppliance:
                 aiohttp_session=session,
                 logger=logger,
                 connection_state_callback=self._connection_callback,
+                task_manager=self._task_manager,
             )
         else:
             self.session = HCSession(
@@ -119,9 +124,10 @@ class HomeAppliance:
                 aiohttp_session=session,
                 logger=logger,
                 connection_state_callback=self._connection_callback,
+                task_manager=self._task_manager,
             )
         self.info = description.get("info", {})
-        self.callback_manager = CallbackManager(self._logger)
+        self.callback_manager = CallbackManager(self._task_manager, self._logger)
         self._ext_connection_state_callback = connection_callback
 
         self.entities_uid = {}
@@ -141,6 +147,7 @@ class HomeAppliance:
     async def close(self) -> None:
         """Close Connection with Appliance."""
         await self.session.close()
+        await self._task_manager.shutdown()
 
     async def _message_handler(self, message: Message) -> None:
         """Handel received messages."""

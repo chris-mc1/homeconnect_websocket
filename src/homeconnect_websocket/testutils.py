@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from homeconnect_websocket import HomeAppliance
-from homeconnect_websocket.helpers import CallbackManager
+from homeconnect_websocket.callback_manager import CallbackManager
 from homeconnect_websocket.session import HCSession
 
 from .entities import DeviceDescription
