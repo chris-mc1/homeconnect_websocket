@@ -60,6 +60,7 @@ class HomeAppliance:
     _selected_program: SelectedProgram | None = None
     _active_program: ActiveProgram | None = None
     _task_manager: TaskManager
+    _ext_connection_state_callback: Callable[[ConnectionState], Awaitable[None]] | None
     callback_manager: CallbackManager
 
     def __init__(  # noqa: PLR0913
@@ -282,7 +283,8 @@ class HomeAppliance:
     async def _connection_callback(self, new_state: ConnectionState) -> None:
         if new_state == ConnectionState.CONNECTED:
             await self._init()
-        try:
-            await self._ext_connection_state_callback(new_state)
-        except Exception:
-            self._logger.exception("Exception in connection state callback")
+        if self._ext_connection_state_callback:
+            try:
+                await self._ext_connection_state_callback(new_state)
+            except Exception:
+                self._logger.exception("Exception in connection state callback")

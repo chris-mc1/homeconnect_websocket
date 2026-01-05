@@ -11,6 +11,8 @@ import aiohttp
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 
+from .errors import AuthenticationError
+
 
 class HCSocket:
     """Socket Base class."""
@@ -262,7 +264,7 @@ class AesSocket(HCSocket):
         if not hmac.compare_digest(recv_hmac, calculated_hmac):
             msg = f"HMAC Failure: {message!s}"
             self._logger.warning(msg)
-            raise ValueError(msg)
+            raise AuthenticationError(msg)
 
         self._last_rx_hmac = recv_hmac
 

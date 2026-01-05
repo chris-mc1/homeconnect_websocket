@@ -7,6 +7,7 @@ from unittest.mock import ANY, AsyncMock, call
 import pytest
 from homeconnect_websocket import (
     AllreadyConnectedError,
+    AuthenticationError,
     ConnectionFailedError,
     ConnectionState,
     HCSession,
@@ -373,6 +374,47 @@ async def test_session_connect_failed() -> None:
             call(ConnectionState.ABNORMAL_CLOSURE),
         ]
     )
+
+
+@pytest.mark.asyncio
+async def test_session_auth_error_tls(
+    appliance_server_tls: Callable[..., Awaitable[ApplianceServer]],
+) -> None:
+    """Test Session connction failing."""
+    appliance_server = await appliance_server_tls(DEVICE_MESSAGE_SET_1)
+
+    session = HCSession(
+        appliance_server.host,
+        app_name=TEST_APP_NAME,
+        app_id=TEST_APP_ID,
+        psk64="DucPCx_bN2d0fP07ptJDas_umP6YK63aAsrgl7kUWZk",
+    )
+
+    with pytest.raises(AuthenticationError):
+        await session.connect()
+
+    await session.close()
+
+
+@pytest.mark.asyncio
+async def test_session_auth_error_aes(
+    appliance_server_aes: Callable[..., Awaitable[ApplianceServerAes]],
+) -> None:
+    """Test Session connction failing."""
+    appliance_server = await appliance_server_aes(DEVICE_MESSAGE_SET_1)
+
+    session = HCSession(
+        appliance_server.host,
+        app_name=TEST_APP_NAME,
+        app_id=TEST_APP_ID,
+        psk64="DucPCx_bN2d0fP07ptJDas_umP6YK63aAsrgl7kUWZk",
+        iv64="8sJeiM2Hofw3XA7M1WB91E==",
+    )
+
+    with pytest.raises(AuthenticationError):
+        await session.connect()
+
+    await session.close()
 
 
 @pytest.mark.asyncio

@@ -58,5 +58,9 @@ class AllreadyConnectedError(HCConnectionError):
     """Client is allready connected."""
 
 
+class AuthenticationError(HCConnectionError):
+    """Authentication failed."""
+
+
 class ParserError(HomeConnectError):
     """Description Parser Error."""

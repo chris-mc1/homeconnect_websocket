@@ -4,6 +4,7 @@ from .entities import DeviceDescription, Entity
 from .errors import (
     AccessError,
     AllreadyConnectedError,
+    AuthenticationError,
     CodeResponsError,
     ConnectionFailedError,
     DisconnectedError,
@@ -18,6 +19,7 @@ from .session import ConnectionState, HCSession, HCSessionReconnect
 __all__ = [
     "AccessError",
     "AllreadyConnectedError",
+    "AuthenticationError",
     "CodeResponsError",
     "ConnectionFailedError",
     "ConnectionState",

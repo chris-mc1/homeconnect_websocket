@@ -17,6 +17,7 @@ from homeconnect_websocket.task_manager import TaskManager
 from .const import DEFAULT_SEND_TIMEOUT, ERROR_CODES
 from .errors import (
     AllreadyConnectedError,
+    AuthenticationError,
     CodeResponsError,
     ConnectionFailedError,
     DisconnectedError,
@@ -246,7 +247,14 @@ class HCSession(HCSessionBase):
 
         try:
             await self._socket.connect()
-        except (aiohttp.ClientConnectionError, aiohttp.ClientConnectorSSLError) as exc:
+        except (aiohttp.ClientConnectionError, aiohttp.ClientConnectorError) as exc:
+            if exc.ssl is not None and exc.strerror is None:
+                # TLS Auth Error
+                msg = "Authentication with Appliance failed"
+                self._logger.debug(msg, exc_info=True)
+                self._set_connection_state(ConnectionState.ABNORMAL_CLOSURE)
+                raise AuthenticationError(msg) from exc
+
             msg = "Failed to connect to Appliance"
             self._logger.debug(msg, exc_info=True)
             self._set_connection_state(ConnectionState.ABNORMAL_CLOSURE)
