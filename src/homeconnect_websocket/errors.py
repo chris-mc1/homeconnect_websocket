@@ -34,8 +34,32 @@ class AccessError(HomeConnectError):
     """Entity not Accessible."""
 
 
-class NotConnectedError(HomeConnectError):
+class HCConnectionError(HomeConnectError):
+    """Errors HomeConnect ."""
+
+
+class NotConnectedError(HCConnectionError):
     """Client is not Connected."""
+
+
+class DisconnectedError(HCConnectionError):
+    """Connection closed while waiting for response."""
+
+
+class ConnectionFailedError(HCConnectionError):
+    """Client failed to connect."""
+
+
+class HCHandshakeError(HCConnectionError):
+    """Handshake failed."""
+
+
+class AllreadyConnectedError(HCConnectionError):
+    """Client is allready connected."""
+
+
+class AuthenticationError(HCConnectionError):
+    """Authentication failed."""
 
 
 class ParserError(HomeConnectError):

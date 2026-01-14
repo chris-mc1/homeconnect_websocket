@@ -5,10 +5,13 @@ import logging
 import ssl
 from abc import abstractmethod
 from base64 import urlsafe_b64decode
+from typing import Any
 
 import aiohttp
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
+
+from .errors import AuthenticationError
 
 
 class HCSocket:
@@ -39,10 +42,11 @@ class HCSocket:
             # is ipv6 address
             host = f"[{host}]"
         self._url = self._URL_FORMAT.format(host=host)
-        if session is None:
-            session = aiohttp.ClientSession()
-            self._owned_session = True
+
         self._session = session
+        if self._session is None:
+            self._owned_session = True
+
         if logger is None:
             self._logger = logging.getLogger(__name__)
         else:
@@ -52,7 +56,16 @@ class HCSocket:
     async def connect(self) -> None:
         """Connect to websocket."""
         self._logger.debug("Socket connecting to %s, mode=NONE", self._url)
-        self._websocket = await self._session.ws_connect(self._url, heartbeat=20)
+
+        self._websocket = await self._ws_connect()
+
+    async def _ws_connect(
+        self, *args: Any, **kwargs: Any
+    ) -> aiohttp.ClientWebSocketResponse:
+        if self._owned_session and self._session is None:
+            self._session = aiohttp.ClientSession()
+
+        return await self._session.ws_connect(self._url, *args, heartbeat=20, **kwargs)
 
     @abstractmethod
     async def send(self, message: str) -> None:
@@ -69,10 +82,13 @@ class HCSocket:
     async def close(self) -> None:
         """Close websocket."""
         self._logger.debug("Closing socket %s", self._url)
+
         if self._websocket:
             await self._websocket.close()
+
         if self._owned_session:
             await self._session.close()
+            self._session = None
 
     @property
     def closed(self) -> bool:
@@ -80,6 +96,11 @@ class HCSocket:
         if self._websocket:
             return self._websocket.closed
         return True
+
+    async def receive(self, timeout: float | None = None) -> str:  # noqa: ASYNC109
+        """Recive single message."""
+        msg = await self._websocket.receive(timeout)
+        return await self._receive(msg)
 
     def __aiter__(self) -> HCSocket:
         return self
@@ -126,9 +147,11 @@ class TlsSocket(HCSocket):
     async def connect(self) -> None:
         """Connect to websocket."""
         self._logger.debug("Socket connecting to %s, mode=TLS", self._url)
-        self._websocket = await self._session.ws_connect(
-            self._url, ssl=self._ssl_context, heartbeat=20
-        )
+
+        if self._owned_session and self._session is None:
+            self._session = aiohttp.ClientSession()
+
+        self._websocket = await self._ws_connect(ssl=self._ssl_context)
 
     async def send(self, message: str) -> None:
         """Send message."""
@@ -190,7 +213,11 @@ class AesSocket(HCSocket):
         self._aes_decrypt = AES.new(self._enckey, AES.MODE_CBC, self._iv)
 
         self._logger.debug("Socket connecting to %s, mode=AES", self._url)
-        self._websocket = await self._session.ws_connect(self._url, heartbeat=20)
+
+        if self._owned_session and self._session is None:
+            self._session = aiohttp.ClientSession()
+
+        self._websocket = await self._ws_connect()
 
     async def send(self, clear_msg: str) -> None:
         """Recive message."""
@@ -237,7 +264,7 @@ class AesSocket(HCSocket):
         if not hmac.compare_digest(recv_hmac, calculated_hmac):
             msg = f"HMAC Failure: {message!s}"
             self._logger.warning(msg)
-            raise ValueError(msg)
+            raise AuthenticationError(msg)
 
         self._last_rx_hmac = recv_hmac
 

@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock
 import pytest
 from aiohttp import WSMessage, WSMsgType
 from Crypto.Random import get_random_bytes
+from homeconnect_websocket import AuthenticationError
 from homeconnect_websocket.hc_socket import AesSocket, TlsSocket
 from homeconnect_websocket.testutils import TEST_IV64, TEST_PSK64
 
@@ -192,5 +193,5 @@ async def test_ase_hmac_failure() -> None:
     msg_data = msg_data[:-16] + get_random_bytes(16)
 
     msg = WSMessage(type=WSMsgType.BINARY, data=msg_data, extra=None)
-    with pytest.raises(ValueError, match="HMAC Failure"):
+    with pytest.raises(AuthenticationError, match="HMAC Failure"):
         await socket._receive(msg)

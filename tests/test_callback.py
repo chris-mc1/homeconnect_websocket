@@ -38,8 +38,8 @@ async def test_call_callback(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     entity = appliance.entities_uid[1]
 
-    callback_1 = MagicMock()
-    callback_2 = MagicMock()
+    callback_1 = AsyncMock()
+    callback_2 = AsyncMock()
     entity.register_callback(callback_1)
     entity.register_callback(callback_2)
 
@@ -47,8 +47,10 @@ async def test_call_callback(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await entity.update({"available": True, "access": Access.READ_WRITE, "value": 1})
 
-    callback_1.assert_called_once_with(entity)
-    callback_2.assert_called_once_with(entity)
+    await appliance._task_manager.block_till_done()
+
+    callback_1.assert_awaited_once_with(entity)
+    callback_2.assert_awaited_once_with(entity)
 
     entity.unregister_callback(callback_1)
     entity.unregister_callback(callback_2)
@@ -68,8 +70,8 @@ async def test_register_unregister_callback() -> None:
     )
 
     entity = Entity(description, AsyncMock())
-    callback_1 = MagicMock()
-    callback_2 = MagicMock()
+    callback_1 = AsyncMock()
+    callback_2 = AsyncMock()
 
     entity.register_callback(callback_1)
     entity.register_callback(callback_2)
@@ -102,7 +104,7 @@ async def test_callback_lock(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     entity = appliance.entities_uid[1]
 
-    callback = MagicMock()
+    callback = AsyncMock()
     entity.register_callback(callback)
 
     await appliance.callback_manager.acquire()  # Acquire 1
@@ -114,13 +116,19 @@ async def test_callback_lock(monkeypatch: pytest.MonkeyPatch) -> None:
     await entity.update(
         {"uid": 1, "available": True, "access": Access.READ_WRITE, "value": 2}
     )
-    callback.assert_not_called()
+
+    await appliance._task_manager.block_till_done()
+    callback.assert_not_awaited()
 
     await appliance.callback_manager.release()  # Release 1
-    callback.assert_not_called()
+
+    await appliance._task_manager.block_till_done()
+    callback.assert_not_awaited()
 
     await appliance.callback_manager.release()  # Release 2
-    callback.assert_called_once_with(entity)
+
+    await appliance._task_manager.block_till_done()
+    callback.assert_awaited_once_with(entity)
 
 
 @pytest.mark.asyncio
@@ -143,7 +151,7 @@ async def test_batch_callback(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     entity = appliance.entities_uid[1]
 
-    callback = MagicMock()
+    callback = AsyncMock()
     entity.register_callback(callback)
 
     await appliance._update_entities(
@@ -153,4 +161,5 @@ async def test_batch_callback(monkeypatch: pytest.MonkeyPatch) -> None:
         ]
     )
 
-    callback.assert_called_once_with(entity)
+    await appliance._task_manager.block_till_done()
+    callback.assert_awaited_once_with(entity)

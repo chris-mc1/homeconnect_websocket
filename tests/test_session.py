@@ -4,10 +4,16 @@ import asyncio
 from typing import TYPE_CHECKING
 from unittest.mock import ANY, AsyncMock, call
 
-import aiohttp
 import pytest
+from homeconnect_websocket import (
+    AllreadyConnectedError,
+    AuthenticationError,
+    ConnectionFailedError,
+    ConnectionState,
+    HCSession,
+    HCSessionReconnect,
+)
 from homeconnect_websocket.message import Action, Message
-from homeconnect_websocket.session import ConnectionState, HCSession
 from homeconnect_websocket.testutils import TEST_APP_ID, TEST_APP_NAME
 
 from const import (
@@ -33,22 +39,37 @@ async def test_session_connect_tls(
 ) -> None:
     """Test Session connection."""
     appliance_server = await appliance_server_tls(DEVICE_MESSAGE_SET_1)
+    connection_callback = AsyncMock()
+    message_handler = AsyncMock()
+
     session = HCSession(
         appliance_server.host,
         app_name=TEST_APP_NAME,
         app_id=TEST_APP_ID,
         psk64=appliance_server.psk64,
+        message_handler=message_handler,
         handshake=False,
+        connection_state_callback=connection_callback,
     )
-    message_handler = AsyncMock()
 
     assert not session.connected
-    await session.connect(message_handler)
+    assert session.connection_state == ConnectionState.CLOSED
+    await session.connect()
     assert session.connected
+    assert session.connection_state == ConnectionState.CONNECTED
 
     await session.close()
     assert not session.connected
+    assert session.connection_state == ConnectionState.CLOSED
 
+    connection_callback.assert_has_awaits(
+        [
+            call(ConnectionState.CONNECTING),
+            call(ConnectionState.CONNECTED),
+            call(ConnectionState.CLOSING),
+            call(ConnectionState.CLOSED),
+        ]
+    )
     message_handler.assert_called_once_with(
         Message(
             sid=SESSION_ID,
@@ -68,23 +89,38 @@ async def test_session_connect_aes(
 ) -> None:
     """Test Session connection failing."""
     appliance_server = await appliance_server_aes(DEVICE_MESSAGE_SET_1)
+    connection_callback = AsyncMock()
+    message_handler = AsyncMock()
+
     session = HCSession(
         appliance_server.host,
         app_name=TEST_APP_NAME,
         app_id=TEST_APP_ID,
         psk64=appliance_server.psk64,
         iv64=appliance_server.iv64,
+        message_handler=message_handler,
         handshake=False,
+        connection_state_callback=connection_callback,
     )
-    message_handler = AsyncMock()
 
     assert not session.connected
-    await session.connect(message_handler)
+    assert session.connection_state == ConnectionState.CLOSED
+    await session.connect()
     assert session.connected
+    assert session.connection_state == ConnectionState.CONNECTED
 
     await session.close()
     assert not session.connected
+    assert session.connection_state == ConnectionState.CLOSED
 
+    connection_callback.assert_has_awaits(
+        [
+            call(ConnectionState.CONNECTING),
+            call(ConnectionState.CONNECTED),
+            call(ConnectionState.CLOSING),
+            call(ConnectionState.CLOSED),
+        ]
+    )
     message_handler.assert_called_once_with(
         Message(
             sid=SESSION_ID,
@@ -104,15 +140,27 @@ async def test_session_handshake_1(
 ) -> None:
     """Test Session Handshake with Message set 1."""
     appliance = await appliance_server(DEVICE_MESSAGE_SET_1)
+    connection_callback = AsyncMock()
     session = HCSession(
         appliance.host,
         app_name=TEST_APP_NAME,
         app_id=TEST_APP_ID,
         psk64=None,
+        connection_state_callback=connection_callback,
     )
-    message_handler = AsyncMock()
-    await session.connect(message_handler)
+
+    await session.connect()
     await session.close()
+
+    connection_callback.assert_has_awaits(
+        [
+            call(ConnectionState.CONNECTING),
+            call(ConnectionState.HANDSHAKE),
+            call(ConnectionState.CONNECTED),
+            call(ConnectionState.CLOSING),
+            call(ConnectionState.CLOSED),
+        ]
+    )
 
     assert appliance.messages[0] == Message(
         sid=10,
@@ -152,22 +200,6 @@ async def test_session_handshake_1(
         sid=10, msg_id=33, resource="/ni/info", version=1, action=Action.GET
     )
 
-    assert appliance.messages[5] == Message(
-        sid=10,
-        msg_id=34,
-        resource="/ro/allDescriptionChanges",
-        version=1,
-        action=Action.GET,
-    )
-
-    assert appliance.messages[6] == Message(
-        sid=10,
-        msg_id=35,
-        resource="/ro/allMandatoryValues",
-        version=1,
-        action=Action.GET,
-    )
-
 
 @pytest.mark.asyncio
 async def test_session_handshake_2(
@@ -175,15 +207,28 @@ async def test_session_handshake_2(
 ) -> None:
     """Test Session Handshake with Message set 2."""
     appliance = await appliance_server(DEVICE_MESSAGE_SET_2)
+    connection_callback = AsyncMock()
+
     session = HCSession(
         appliance.host,
         app_name=TEST_APP_NAME,
         app_id=TEST_APP_ID,
         psk64=None,
+        connection_state_callback=connection_callback,
     )
-    message_handler = AsyncMock()
-    await session.connect(message_handler)
+
+    await session.connect()
     await session.close()
+
+    connection_callback.assert_has_awaits(
+        [
+            call(ConnectionState.CONNECTING),
+            call(ConnectionState.HANDSHAKE),
+            call(ConnectionState.CONNECTED),
+            call(ConnectionState.CLOSING),
+            call(ConnectionState.CLOSED),
+        ]
+    )
 
     assert appliance.messages[0] == Message(
         sid=10,
@@ -224,22 +269,6 @@ async def test_session_handshake_2(
         sid=10, msg_id=32, resource="/ci/info", version=1, action=Action.GET
     )
 
-    assert appliance.messages[4] == Message(
-        sid=10,
-        msg_id=33,
-        resource="/ro/allDescriptionChanges",
-        version=1,
-        action=Action.GET,
-    )
-
-    assert appliance.messages[5] == Message(
-        sid=10,
-        msg_id=34,
-        resource="/ro/allMandatoryValues",
-        version=1,
-        action=Action.GET,
-    )
-
 
 @pytest.mark.asyncio
 async def test_session_handshake_3(
@@ -247,15 +276,28 @@ async def test_session_handshake_3(
 ) -> None:
     """Test Session Handshake with Message set 2."""
     appliance = await appliance_server(DEVICE_MESSAGE_SET_3)
+    connection_callback = AsyncMock()
+
     session = HCSession(
         appliance.host,
         app_name=TEST_APP_NAME,
         app_id=TEST_APP_ID,
         psk64=None,
+        connection_state_callback=connection_callback,
     )
-    message_handler = AsyncMock()
-    await session.connect(message_handler)
+
+    await session.connect()
     await session.close()
+
+    connection_callback.assert_has_awaits(
+        [
+            call(ConnectionState.CONNECTING),
+            call(ConnectionState.HANDSHAKE),
+            call(ConnectionState.CONNECTED),
+            call(ConnectionState.CLOSING),
+            call(ConnectionState.CLOSED),
+        ]
+    )
 
     assert appliance.messages[0] == Message(
         sid=10,
@@ -304,73 +346,302 @@ async def test_session_handshake_3(
         sid=10, msg_id=34, resource="/ni/info", version=1, action=Action.GET
     )
 
-    assert appliance.messages[6] == Message(
-        sid=10,
-        msg_id=35,
-        resource="/ro/allDescriptionChanges",
-        version=1,
-        action=Action.GET,
-    )
-
-    assert appliance.messages[7] == Message(
-        sid=10,
-        msg_id=36,
-        resource="/ro/allMandatoryValues",
-        version=1,
-        action=Action.GET,
-    )
-
 
 @pytest.mark.asyncio
 async def test_session_connect_failed() -> None:
     """Test Session connction failing."""
+    connection_callback = AsyncMock()
+
     session = HCSession(
         "127.0.0.1",
         app_name=TEST_APP_NAME,
         app_id=TEST_APP_ID,
         psk64=None,
+        connection_state_callback=connection_callback,
     )
-    with pytest.raises(aiohttp.ClientConnectionError):
-        await session.connect(AsyncMock())
+
+    with pytest.raises(ConnectionFailedError):
+        await session.connect()
+
     assert not session.connected
+    assert session.connection_state == ConnectionState.ABNORMAL_CLOSURE
+
+    await session.close()
+
+    connection_callback.assert_has_awaits(
+        [
+            call(ConnectionState.CONNECTING),
+            call(ConnectionState.ABNORMAL_CLOSURE),
+        ]
+    )
 
 
 @pytest.mark.asyncio
-async def test_session_connect_callback(
+async def test_session_auth_error_tls(
+    appliance_server_tls: Callable[..., Awaitable[ApplianceServer]],
+) -> None:
+    """Test Session connction failing."""
+    appliance_server = await appliance_server_tls(DEVICE_MESSAGE_SET_1)
+
+    session = HCSession(
+        appliance_server.host,
+        app_name=TEST_APP_NAME,
+        app_id=TEST_APP_ID,
+        psk64="DucPCx_bN2d0fP07ptJDas_umP6YK63aAsrgl7kUWZk",
+    )
+
+    with pytest.raises(AuthenticationError):
+        await session.connect()
+
+    await session.close()
+
+
+@pytest.mark.asyncio
+async def test_session_auth_error_aes(
+    appliance_server_aes: Callable[..., Awaitable[ApplianceServerAes]],
+) -> None:
+    """Test Session connction failing."""
+    appliance_server = await appliance_server_aes(DEVICE_MESSAGE_SET_1)
+
+    session = HCSession(
+        appliance_server.host,
+        app_name=TEST_APP_NAME,
+        app_id=TEST_APP_ID,
+        psk64="DucPCx_bN2d0fP07ptJDas_umP6YK63aAsrgl7kUWZk",
+        iv64="8sJeiM2Hofw3XA7M1WB91E==",
+    )
+
+    with pytest.raises(AuthenticationError):
+        await session.connect()
+
+    await session.close()
+
+
+@pytest.mark.asyncio
+async def test_session_allready_connected(
     appliance_server: Callable[..., Awaitable[ApplianceServer]],
 ) -> None:
-    """Test Session connection."""
+    """Test Session connction failing."""
     appliance = await appliance_server(DEVICE_MESSAGE_SET_3)
     connection_callback = AsyncMock()
+
     session = HCSession(
         appliance.host,
         app_name=TEST_APP_NAME,
         app_id=TEST_APP_ID,
         psk64=None,
         handshake=False,
-        connection_callback=connection_callback,
+        connection_state_callback=connection_callback,
     )
-    session._socket._owned_session = False
-    message_handler = AsyncMock()
 
-    assert not session.connected
-    await session.connect(message_handler)
+    await session.connect()
     assert session.connected
+    assert session.connection_state == ConnectionState.CONNECTED
 
-    await session._socket.close()
-    assert not session.connected
+    with pytest.raises(AllreadyConnectedError):
+        await session.connect()
 
-    await asyncio.sleep(1)
-
-    session._socket._owned_session = True
     await session.close()
-    assert not session.connected
 
     connection_callback.assert_has_awaits(
         [
+            call(ConnectionState.CONNECTING),
             call(ConnectionState.CONNECTED),
-            call(ConnectionState.DISCONNECTED),
+            call(ConnectionState.CLOSING),
+            call(ConnectionState.CLOSED),
+        ]
+    )
+
+
+@pytest.mark.asyncio
+async def test_session_connection_closed(
+    appliance_server: Callable[..., Awaitable[ApplianceServer]],
+) -> None:
+    """Test Session connection."""
+    appliance = await appliance_server(DEVICE_MESSAGE_SET_3)
+    connection_callback = AsyncMock()
+
+    session = HCSession(
+        appliance.host,
+        app_name=TEST_APP_NAME,
+        app_id=TEST_APP_ID,
+        psk64=None,
+        handshake=False,
+        connection_state_callback=connection_callback,
+    )
+
+    assert not session.connected
+    assert session.connection_state == ConnectionState.CLOSED
+
+    await session.connect()
+
+    assert session.connected
+    assert session.connection_state == ConnectionState.CONNECTED
+
+    await appliance.ws.close()
+
+    await asyncio.sleep(1)
+
+    assert not session.connected
+    assert session.connection_state == ConnectionState.ABNORMAL_CLOSURE
+
+    connection_callback.assert_has_awaits(
+        [
+            call(ConnectionState.CONNECTING),
             call(ConnectionState.CONNECTED),
+            call(ConnectionState.ABNORMAL_CLOSURE),
+        ]
+    )
+
+    await session.close()
+
+
+@pytest.mark.asyncio
+async def test_session_reconnect_manual(
+    appliance_server: Callable[..., Awaitable[ApplianceServer]],
+) -> None:
+    """Test Session connection."""
+    appliance = await appliance_server(DEVICE_MESSAGE_SET_1)
+    connection_callback = AsyncMock()
+
+    session = HCSession(
+        appliance.host,
+        app_name=TEST_APP_NAME,
+        app_id=TEST_APP_ID,
+        psk64=None,
+        handshake=False,
+        connection_state_callback=connection_callback,
+    )
+
+    assert not session.connected
+    assert session.connection_state == ConnectionState.CLOSED
+    await session.connect()
+    assert session.connected
+    assert session.connection_state == ConnectionState.CONNECTED
+
+    await appliance.ws.close()
+
+    await asyncio.sleep(1)
+
+    assert not session.connected
+    assert session.connection_state == ConnectionState.ABNORMAL_CLOSURE
+
+    await session.connect()
+
+    await session.close()
+
+    connection_callback.assert_has_awaits(
+        [
+            call(ConnectionState.CONNECTING),
+            call(ConnectionState.CONNECTED),
+            call(ConnectionState.ABNORMAL_CLOSURE),
+            call(ConnectionState.CONNECTING),
+            call(ConnectionState.CONNECTED),
+            call(ConnectionState.CLOSING),
+            call(ConnectionState.CLOSED),
+        ]
+    )
+
+
+@pytest.mark.asyncio
+async def test_session_reconnect_auto(
+    appliance_server: Callable[..., Awaitable[ApplianceServer]],
+) -> None:
+    """Test Session connection."""
+    appliance = await appliance_server(DEVICE_MESSAGE_SET_1)
+    connection_callback = AsyncMock()
+
+    session = HCSessionReconnect(
+        appliance.host,
+        app_name=TEST_APP_NAME,
+        app_id=TEST_APP_ID,
+        psk64=None,
+        handshake=False,
+        connection_state_callback=connection_callback,
+    )
+
+    assert not session.connected
+    assert session.connection_state == ConnectionState.CLOSED
+
+    await session.connect()
+
+    assert session.connected
+    assert session.connection_state == ConnectionState.CONNECTED
+
+    await appliance.ws.close()
+
+    await asyncio.sleep(0)
+
+    assert not session.connected
+    assert session.connection_state == ConnectionState.RECONNECTING
+
+    await asyncio.sleep(1)
+
+    assert session.connected
+    assert session.connection_state == ConnectionState.CONNECTED
+
+    await session.close()
+
+    connection_callback.assert_has_awaits(
+        [
+            call(ConnectionState.CONNECTING),
+            call(ConnectionState.CONNECTED),
+            call(ConnectionState.RECONNECTING),
+            call(ConnectionState.CONNECTED),
+            call(ConnectionState.CLOSING),
+            call(ConnectionState.CLOSED),
+        ]
+    )
+
+
+@pytest.mark.asyncio
+async def test_session_reconnect_auto_handshake(
+    appliance_server: Callable[..., Awaitable[ApplianceServer]],
+) -> None:
+    """Test Session connection."""
+    appliance = await appliance_server(DEVICE_MESSAGE_SET_1)
+    connection_callback = AsyncMock()
+
+    session = HCSessionReconnect(
+        appliance.host,
+        app_name=TEST_APP_NAME,
+        app_id=TEST_APP_ID,
+        psk64=None,
+        handshake=True,
+        connection_state_callback=connection_callback,
+    )
+
+    assert not session.connected
+    assert session.connection_state == ConnectionState.CLOSED
+
+    await session.connect()
+
+    assert session.connected
+    assert session.connection_state == ConnectionState.CONNECTED
+
+    await appliance.ws.close()
+
+    await asyncio.sleep(0)
+
+    assert not session.connected
+    assert session.connection_state == ConnectionState.RECONNECTING
+
+    await asyncio.sleep(1)
+
+    assert session.connected
+    assert session.connection_state == ConnectionState.CONNECTED
+
+    await session.close()
+
+    connection_callback.assert_has_awaits(
+        [
+            call(ConnectionState.CONNECTING),
+            call(ConnectionState.HANDSHAKE),
+            call(ConnectionState.CONNECTED),
+            call(ConnectionState.RECONNECTING),
+            call(ConnectionState.HANDSHAKE),
+            call(ConnectionState.CONNECTED),
+            call(ConnectionState.CLOSING),
             call(ConnectionState.CLOSED),
         ]
     )

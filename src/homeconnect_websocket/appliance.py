@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from .callback_manager import CallbackManager
 from .entities import (
     ActiveProgram,
     Command,
@@ -17,9 +18,9 @@ from .entities import (
     Setting,
     Status,
 )
-from .helpers import CallbackManager
 from .message import Action, Message
-from .session import ConnectionState, HCSession
+from .session import ConnectionState, HCSession, HCSessionReconnect
+from .task_manager import TaskManager
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -58,6 +59,8 @@ class HomeAppliance:
 
     _selected_program: SelectedProgram | None = None
     _active_program: ActiveProgram | None = None
+    _task_manager: TaskManager
+    _ext_connection_state_callback: Callable[[ConnectionState], Awaitable[None]] | None
     callback_manager: CallbackManager
 
     def __init__(  # noqa: PLR0913
@@ -95,19 +98,38 @@ class HomeAppliance:
             self._logger = logging.getLogger(__name__)
         else:
             self._logger = logger.getChild("appliance")
-        self.session = HCSession(
-            host,
-            app_name,
-            app_id,
-            psk64,
-            iv64,
-            session=session,
-            logger=logger,
-            reconect=reconect,
-            connection_callback=connection_callback,
-        )
+
+        self._task_manager = TaskManager()
+
+        if reconect:
+            self.session = HCSessionReconnect(
+                host,
+                app_name,
+                app_id,
+                psk64,
+                iv64,
+                message_handler=self._message_handler,
+                aiohttp_session=session,
+                logger=logger,
+                connection_state_callback=self._connection_callback,
+                task_manager=self._task_manager,
+            )
+        else:
+            self.session = HCSession(
+                host,
+                app_name,
+                app_id,
+                psk64,
+                iv64,
+                message_handler=self._message_handler,
+                aiohttp_session=session,
+                logger=logger,
+                connection_state_callback=self._connection_callback,
+                task_manager=self._task_manager,
+            )
         self.info = description.get("info", {})
-        self.callback_manager = CallbackManager(self._logger)
+        self.callback_manager = CallbackManager(self._task_manager, self._logger)
+        self._ext_connection_state_callback = connection_callback
 
         self.entities_uid = {}
         self.entities = {}
@@ -121,12 +143,12 @@ class HomeAppliance:
 
     async def connect(self) -> None:
         """Open Connection with Appliance."""
-        async with self.callback_manager:
-            await self.session.connect(self._message_handler)
+        await self.session.connect()
 
     async def close(self) -> None:
         """Close Connection with Appliance."""
         await self.session.close()
+        await self._task_manager.shutdown()
 
     async def _message_handler(self, message: Message) -> None:
         """Handel received messages."""
@@ -240,3 +262,29 @@ class HomeAppliance:
             or self._selected_program.value_shadow is None
             else self.entities_uid[self._selected_program.value]
         )
+
+    async def _init(self) -> None:
+        try:
+            async with self.callback_manager:
+                # request description changes
+                description_changes = await self.session.send_sync(
+                    Message(resource="/ro/allDescriptionChanges")
+                )
+                await self._update_entities(description_changes.data)
+
+                # request mandatory values
+                mandatory_values = await self.session.send_sync(
+                    Message(resource="/ro/allMandatoryValues")
+                )
+                await self._update_entities(mandatory_values.data)
+        except Exception:
+            self._logger.exception("Exception during Appliance init")
+
+    async def _connection_callback(self, new_state: ConnectionState) -> None:
+        if new_state == ConnectionState.CONNECTED:
+            await self._init()
+        if self._ext_connection_state_callback:
+            try:
+                await self._ext_connection_state_callback(new_state)
+            except Exception:
+                self._logger.exception("Exception in connection state callback")
