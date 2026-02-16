@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from abc import ABC
 from enum import StrEnum
@@ -178,7 +179,19 @@ class Entity(ABC):
             self._value_shadow = self._value
 
         for callback in self._callbacks:
-            await self._appliance.callback_manager.schedule_callback(callback, self)
+            try:
+                task = asyncio.create_task(callback(self))
+                self._tasks.add(task)
+                task.add_done_callback(self._done_callback)
+            except Exception:
+                _LOGGER.exception("Callback for %s raised an Exception", self.name)
+
+    def _done_callback(self, task: asyncio.Task) -> None:
+        if exc := task.exception():
+            _LOGGER.exception(
+                "Exception in callback for entity %s", self.name, exc_info=exc
+            )
+        self._tasks.discard(task)
 
     def register_callback(self, callback: Callable[[Entity], Coroutine]) -> None:
         """Register update callback."""
@@ -214,10 +227,15 @@ class Entity(ABC):
         """
         Current Value of the Entity.
 
-        if the Entity is an Enum entity the value will be resolve to the actual value.
+        If the Entity is an Enum entity, the value will be resolved to the actual value.
+        If the key does not exist in the enumeration, return the raw value as fallback.
         """
         if self._enumeration and self._value is not None:
-            return self._enumeration.get(self._value)
+            try:
+                return self._enumeration[self._value]
+            except KeyError:
+                # Fallback: return raw value if key missing (e.g., zone 120 not in enum)
+                return self._value
         return self._value
 
     async def set_value(self, value: str | int | bool) -> None:  # noqa: FBT001
@@ -378,16 +396,6 @@ class MinMaxMixin(Entity):
         if "stepSize" in description:
             self._step = float(description["stepSize"])
 
-    async def update(self, values: dict) -> None:
-        """Update the entity state and execute callbacks."""
-        if "min" in values:
-            self._min = float(values["min"])
-        if "max" in values:
-            self._max = float(values["max"])
-        if "stepSize" in values:
-            self._step = float(values["stepSize"])
-        await super().update(values)
-
     @property
     def min(self) -> float | None:
         """Minimum value."""
@@ -483,12 +491,6 @@ class Program(AvailableMixin, Entity):
                 self._options.append(appliance.entities_uid[option["refUID"]])
         self._execution = Execution(description.get("execution", "selectandstart"))
 
-    async def update(self, values: dict) -> None:
-        """Update the entity state and execute callbacks."""
-        if "execution" in values:
-            self._execution = Execution(values["execution"])
-        await super().update(values)
-
     async def select(self) -> None:
         """Select this Program."""
         message = Message(
@@ -498,25 +500,17 @@ class Program(AvailableMixin, Entity):
         )
         await self._appliance.session.send_sync(message)
 
-    async def start(
-        self,
-        options: dict[str, str | int | bool] | None = None,
-        *,
-        override_options: bool = False,
-    ) -> None:
+    async def start(self, options: dict[str, str | int | bool] | None = None) -> None:
         """Start this Program, select might be required first."""
         if options is None:
             options = {}
         _options = [
-            {"uid": option_uid, "value": option_value}
-            for option_uid, option_value in options.items()
+            {"uid": option.uid, "value": option.value_shadow}
+            for option in self._options
+            if option.access == Access.READ_WRITE and option.uid not in options
         ]
-        if override_options is False:
-            _options.extend(
-                {"uid": option.uid, "value": option.value_shadow}
-                for option in self._options
-                if option.access == Access.READ_WRITE and option.uid not in options
-            )
+        for option_uid, option_value in options.items():
+            _options.append({"uid": option_uid, "value": option_value})
 
         message = Message(
             resource="/ro/activeProgram",
@@ -529,12 +523,6 @@ class Program(AvailableMixin, Entity):
     def execution(self) -> Execution:
         """Execution type."""
         return self._execution
-
-    def dump(self) -> dict:
-        """Dump Entity state."""
-        state = super().dump()
-        state["execution"] = self.execution
-        return state
 
 
 class ActiveProgram(AccessMixin, AvailableMixin, Entity):
