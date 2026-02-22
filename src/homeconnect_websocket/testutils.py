@@ -11,6 +11,7 @@ import pytest
 from homeconnect_websocket import HomeAppliance
 from homeconnect_websocket.callback_manager import CallbackManager
 from homeconnect_websocket.session import HCSession
+from homeconnect_websocket.task_manager import TaskManager
 
 from .entities import DeviceDescription
 
@@ -55,7 +56,10 @@ class MockAppliance(HomeAppliance):
         _description = BASE_DESCRIPTION.copy()
         _description.update(description)
         self.info = _description.get("info", {})
-        self.callback_manager = CallbackManager(Mock(spec=logging.Logger))
+        self._task_manager = TaskManager()
+        self.callback_manager = CallbackManager(
+            self._task_manager, Mock(spec=logging.Logger)
+        )
 
         self.entities_uid = {}
         self.entities = {}
