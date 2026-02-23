@@ -248,7 +248,11 @@ class HCSession(HCSessionBase):
         try:
             await self._socket.connect()
         except (aiohttp.ClientConnectionError, aiohttp.ClientConnectorError) as exc:
-            if exc.ssl is not None and exc.strerror is None:
+            if (
+                isinstance(exc, aiohttp.ClientConnectorError)
+                and exc.ssl is not None
+                and exc.strerror is None
+            ):
                 # TLS Auth Error
                 msg = "Authentication with Appliance failed"
                 self._logger.debug(msg, exc_info=True)
