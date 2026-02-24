@@ -73,7 +73,13 @@ async def test_select(
         Message(
             resource="/ro/selectedProgram",
             action=Action.POST,
-            data={"program": 1, "options": []},
+            data={
+                "program": 1,
+                "options": [
+                    {"uid": 10000, "value": True},
+                    {"uid": 10001, "value": "str"},
+                ],
+            },
         )
     )
 
