@@ -30,6 +30,12 @@ def load_object(obj_str: str) -> dict:
         try:
             return json.loads(obj_str)
         except json.JSONDecodeError as exc:
+            # Workaround for json with extra quote
+            try:
+                return json.loads(obj_str.replace(']"', "]"))
+            except json.JSONDecodeError:
+                pass
+
             msg = "Can't decode JSON"
             raise TypeError(msg) from exc
     return obj_str
