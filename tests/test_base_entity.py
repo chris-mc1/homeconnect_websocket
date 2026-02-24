@@ -56,6 +56,22 @@ def test_init_object() -> None:
     assert entity.enum is None
 
 
+def test_init_object2() -> None:
+    """Test Entity init full."""
+    description = EntityDescription(
+        uid=1,
+        name="Test_Entity",
+        default='{"list": [4409,4407]", "length": 5}',
+        available=False,
+        access=Access.READ,
+        protocolType="Object",
+    )
+    entity = Entity(description, AsyncMock())
+    assert entity.uid == 1
+    assert entity.name == "Test_Entity"
+    assert entity.value == {"list": [4409, 4407], "length": 5}
+
+
 @pytest.mark.asyncio
 async def test_update() -> None:
     """Test Entity.update()."""
