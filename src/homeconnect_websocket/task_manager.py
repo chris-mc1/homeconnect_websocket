@@ -92,7 +92,7 @@ class TaskManager:
         """
         current_task = asyncio.current_task()
         try:
-            self.block_till_done(wait_background_tasks=True)
+            await self.block_till_done(wait_background_tasks=True)
         except TimeoutError:
             while tasks := [
                 task
