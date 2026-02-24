@@ -489,22 +489,12 @@ class Program(AvailableMixin, Entity):
             self._execution = Execution(values["execution"])
         await super().update(values)
 
-    async def select(self) -> None:
-        """Select this Program."""
-        message = Message(
-            resource="/ro/selectedProgram",
-            action=Action.POST,
-            data={"program": self._uid, "options": []},
-        )
-        await self._appliance.session.send_sync(message)
-
-    async def start(
+    def _build_options(
         self,
         options: dict[str, str | int | bool] | None = None,
         *,
         override_options: bool = False,
-    ) -> None:
-        """Start this Program, select might be required first."""
+    ) -> list[dict[str, Any]]:
         if options is None:
             options = {}
         _options = [
@@ -517,11 +507,43 @@ class Program(AvailableMixin, Entity):
                 for option in self._options
                 if option.access == Access.READ_WRITE and option.uid not in options
             )
+        return _options
 
+    async def select(
+        self,
+        options: dict[str, str | int | bool] | None = None,
+        *,
+        override_options: bool = False,
+    ) -> None:
+        """Select this Program."""
+        message = Message(
+            resource="/ro/selectedProgram",
+            action=Action.POST,
+            data={
+                "program": self._uid,
+                "options": self._build_options(
+                    options=options, override_options=override_options
+                ),
+            },
+        )
+        await self._appliance.session.send_sync(message)
+
+    async def start(
+        self,
+        options: dict[str, str | int | bool] | None = None,
+        *,
+        override_options: bool = False,
+    ) -> None:
+        """Start this Program, select might be required first."""
         message = Message(
             resource="/ro/activeProgram",
             action=Action.POST,
-            data={"program": self._uid, "options": _options},
+            data={
+                "program": self._uid,
+                "options": self._build_options(
+                    options=options, override_options=override_options
+                ),
+            },
         )
         await self._appliance.session.send_sync(message)
 
