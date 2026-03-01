@@ -169,10 +169,31 @@ class HomeAppliance:
 
     async def _update_entities(self, data: list[dict]) -> None:
         """Update entities from Message data."""
+        # Build set of relevant parentUID contexts for filtering Option updates.
+        # Only apply Option updates from: global context (0/None), selected program,
+        # or active program. This prevents options from other programs (e.g., Favorites)
+        # from overwriting access/availability of the currently relevant program's options.
+        # Other entity types (commands, status, settings) receive updates from any context.
+        relevant_parents: set[int | None] = {0, None}
+        if self._selected_program is not None and self._selected_program.value_raw not in (0, None):
+            relevant_parents.add(self._selected_program.value_raw)
+        if self._active_program is not None and self._active_program.value_raw not in (0, None):
+            relevant_parents.add(self._active_program.value_raw)
+
         async with self.callback_manager:
             for entity in data:
                 uid = int(entity["uid"])
+                parent_uid = entity.get("parentUID")
+
+                # Only filter Option entities from irrelevant program contexts
                 if uid in self.entities_uid:
+                    is_option = isinstance(self.entities_uid[uid], Option)
+                    if is_option and parent_uid is not None and parent_uid not in relevant_parents:
+                        self._logger.debug(
+                            "Skipping option update for uid %s from irrelevant parentUID %s",
+                            uid, parent_uid
+                        )
+                        continue
                     await self.entities_uid[uid].update(entity)
                 else:
                     self._logger.debug("Recived Update for unkown entity %s", uid)
