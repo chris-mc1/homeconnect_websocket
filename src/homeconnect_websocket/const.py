@@ -123,6 +123,7 @@ DESCRIPTION_TYPES: Final = {
     191: "programSessionSummaryList",
     192: "liquidVolumeThroughputList",
     193: "weightOuncesList",
+    194: "rectangle2DList",
 }
 
 # CID to protocol type mapping for Description Parser
@@ -241,6 +242,7 @@ DESCRIPTION_PROTOCOL_TYPES: Final = {
     191: "Object",
     192: "Object",
     193: "Object",
+    194: "Object",
 }
 
 ERROR_CODES = {
