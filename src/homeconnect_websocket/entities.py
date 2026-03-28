@@ -486,7 +486,7 @@ class Program(AvailableMixin, Entity):
     async def update(self, values: dict) -> None:
         """Update the entity state and execute callbacks."""
         if "execution" in values:
-            self._execution = Execution(values["execution"])
+            self._execution = Execution(values["execution"].lower())
         await super().update(values)
 
     def _build_options(
