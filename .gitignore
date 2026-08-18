@@ -1,6 +1,13 @@
-/build
-/dist
+# artifacts
+__pycache__
+.pytest*
 *.egg-info
-*__pycache__
+*/build/*
+*/dist/*
+
+# misc
 .coverage
-.vscode
+.vscode/settings.json
+coverage.xml
+.ruff_cache
+devcontainer.env
