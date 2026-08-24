@@ -1,0 +1,18 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended"
+    ],
+    "enabledManagers": [
+        "pep621",
+        "github-actions",
+        "pre-commit"
+    ],
+    "minimumReleaseAge": "3 days",
+    "osvVulnerabilityAlerts": true,
+    "dependencyDashboardOSVVulnerabilitySummary": "all",
+    "timezone": "Europe/Berlin",
+    "pre-commit": {
+        "enabled": true
+    }
+}
