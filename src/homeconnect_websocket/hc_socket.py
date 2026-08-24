@@ -8,16 +8,22 @@ from base64 import urlsafe_b64decode
 from typing import Any
 
 import aiohttp
+import yarl
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 
 from .errors import AuthenticationError
 
 
+def _make_url(host: str, *, ssl: bool) -> yarl.URL:
+    if ssl:
+        return yarl.URL.build(scheme="wss", host=host, port=443, path="/homeconnect")
+    return yarl.URL.build(scheme="ws", host=host, port=80, path="/homeconnect")
+
+
 class HCSocket:
     """Socket Base class."""
 
-    _URL_FORMAT = "ws://{host}:80/homeconnect"
     _session: aiohttp.ClientSession
     _websocket: aiohttp.ClientWebSocketResponse | None = None
     _owned_session: bool = False
@@ -38,10 +44,7 @@ class HCSocket:
         logger (Optional[Logger]): Logger
 
         """
-        if ":" in host:
-            # is ipv6 address
-            host = f"[{host}]"
-        self._url = self._URL_FORMAT.format(host=host)
+        self._url = _make_url(host, ssl=False)
 
         self._session = session
         if self._session is None:
@@ -113,7 +116,6 @@ class HCSocket:
 class TlsSocket(HCSocket):
     """TLS (wss) Socket."""
 
-    _URL_FORMAT = "wss://{host}:443/homeconnect"
     _ssl_context: ssl.SSLContext
 
     def __init__(
@@ -143,6 +145,7 @@ class TlsSocket(HCSocket):
         self._ssl_context.verify_mode = ssl.CERT_NONE
         self._ssl_context.set_psk_client_callback(lambda _: (None, psk))
         super().__init__(host, session, logger)
+        self._url = _make_url(host, ssl=True)
 
     async def connect(self) -> None:
         """Connect to websocket."""
@@ -173,7 +176,6 @@ MINIMUM_MESSAGE_LENGTH = 32
 class AesSocket(HCSocket):
     """AES Socket."""
 
-    _URL_FORMAT = "ws://{host}:80/homeconnect"
     _last_rx_hmac: bytes
     _last_tx_hmac: bytes
 
@@ -203,6 +205,7 @@ class AesSocket(HCSocket):
         self._mackey = hmac.digest(psk, b"MAC", digest="sha256")
 
         super().__init__(host, session, logger)
+        self._url = _make_url(host, ssl=False)
 
     async def connect(self) -> None:
         """Connect to websocket."""
