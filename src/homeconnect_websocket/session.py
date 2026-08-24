@@ -444,7 +444,8 @@ class HCSession(HCSessionBase):
 
             if "ni" in self.service_versions:
                 message_ready = Message(resource="/ni/info")
-                await self.send_sync(message_ready)
+                with contextlib.suppress(CodeResponsError):
+                    await self.send_sync(message_ready)
 
             self._logger.info("Handshake completed")
             self._set_connection_state(ConnectionState.CONNECTED)
