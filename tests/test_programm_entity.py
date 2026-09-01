@@ -52,6 +52,52 @@ async def test_init_no_options(
 
 
 @pytest.mark.asyncio
+async def test_full_option_set_default_false(
+    mock_homeconnect_appliance: MockApplianceType,
+) -> None:
+    """Test full_option_set defaults to False when not in the description."""
+    description = EntityDescription(uid=1, name="Test_Program")
+    appliance = await mock_homeconnect_appliance()
+    entity = Program(description, appliance)
+
+    assert entity.full_option_set is False
+
+
+@pytest.mark.asyncio
+async def test_full_option_set_true(
+    mock_homeconnect_appliance: MockApplianceType,
+) -> None:
+    """Test full_option_set reflects the parsed description."""
+    description = EntityDescription(uid=1, name="Test_Program", fullOptionSet=True)
+    appliance = await mock_homeconnect_appliance()
+    entity = Program(description, appliance)
+
+    assert entity.full_option_set is True
+
+
+@pytest.mark.asyncio
+async def test_options_public_accessor(
+    mock_homeconnect_appliance: MockApplianceType,
+) -> None:
+    """Test the public options accessor exposes the same Option entities."""
+    description = EntityDescription(
+        uid=1,
+        name="Test_Program",
+        options=[
+            OptionDescription(refUID=10000),
+            OptionDescription(refUID=10001),
+        ],
+    )
+    appliance = await mock_homeconnect_appliance()
+    entity = Program(description, appliance)
+
+    assert entity.options == (
+        appliance.entities_uid[10000],
+        appliance.entities_uid[10001],
+    )
+
+
+@pytest.mark.asyncio
 async def test_select(
     mock_homeconnect_appliance: MockApplianceType,
 ) -> None:

@@ -482,6 +482,7 @@ class Program(AvailableMixin, Entity):
             for option in description["options"]:
                 self._options.append(appliance.entities_uid[option["refUID"]])
         self._execution = Execution(description.get("execution", "selectandstart"))
+        self._full_option_set = description.get("fullOptionSet", False)
 
     async def update(self, values: dict) -> None:
         """Update the entity state and execute callbacks."""
@@ -551,6 +552,16 @@ class Program(AvailableMixin, Entity):
     def execution(self) -> Execution:
         """Execution type."""
         return self._execution
+
+    @property
+    def full_option_set(self) -> bool:
+        """Whether this Program requires a complete option set on every write."""
+        return self._full_option_set
+
+    @property
+    def options(self) -> tuple[Option, ...]:
+        """Option Entities belonging to this Program."""
+        return tuple(self._options)
 
     def dump(self) -> dict:
         """Dump Entity state."""
