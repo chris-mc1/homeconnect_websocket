@@ -1,5 +1,12 @@
 # HomeConnect Websocket
 
+> **Fork notice:** This is a fork of [chris-mc1/homeconnect_websocket](https://github.com/chris-mc1/homeconnect_websocket),
+> maintained for use by [Asmir1975/homeconnect_local_hass-UI](https://github.com/Asmir1975/homeconnect_local_hass-UI).
+> All credit for the original work goes to chris-mc1. This fork carries a small number of patches
+> not (yet) merged upstream; see the git history for what differs from the base release it tracks.
+> The upstream repository has no license file at the time of this fork; this fork does not resolve
+> that and claims no license of its own beyond what GitHub's terms of service permit for forks.
+
 Control HomeConnect Appliances through a local Websocket connection.
 
 ## Authentication and Device Description
