@@ -143,7 +143,10 @@ class TlsSocket(HCSocket):
         self._ssl_context.set_ciphers("PSK")
         self._ssl_context.check_hostname = False
         self._ssl_context.verify_mode = ssl.CERT_NONE
-        self._ssl_context.set_psk_client_callback(lambda _: (None, psk))
+        if hasattr(self._ssl_context, "_ctx"):
+            self._ssl_context._ctx.set_psk_client_callback(lambda _: (None, psk))
+        else:
+            self._ssl_context.set_psk_client_callback(lambda _: (None, psk))
         super().__init__(host, session, logger)
         self._url = _make_url(host, ssl=True)
 
