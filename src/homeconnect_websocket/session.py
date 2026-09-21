@@ -14,7 +14,12 @@ from Crypto.Random import get_random_bytes
 
 from homeconnect_websocket.task_manager import TaskManager
 
-from .const import DEFAULT_SEND_TIMEOUT, ERROR_CODES
+from .const import (
+    DEFAULT_SEND_TIMEOUT,
+    ERROR_CODES,
+    MAX_CONNECT_TIMEOUT,
+    TIMEOUT_INCREASE_FACTOR,
+)
 from .errors import (
     AllreadyConnectedError,
     AuthenticationError,
@@ -505,10 +510,12 @@ class HCSessionReconnect(HCSession):
     """HomeConnect Session with reconnect."""
 
     _reconnect: bool = True
+    _retry_count: int = 0
 
     async def connect(self) -> None:
         """Open Connection with Appliance."""
         self._reconnect = True
+        self._retry_count = 0
         if self.connection_state in (ConnectionState.RECONNECTING):
             raise AllreadyConnectedError
 
@@ -530,6 +537,7 @@ class HCSessionReconnect(HCSession):
                         self._wrap_recv_loop(), eager_start=True
                     )
                     await self._handshake(init_message)
+                    self._retry_count = 0
                     break
 
                 self._task_manager.create_background_task(
@@ -537,10 +545,17 @@ class HCSessionReconnect(HCSession):
                 )
                 self._logger.info("Connected, no handshake")
                 self._set_connection_state(ConnectionState.CONNECTED)
+                self._retry_count = 0
                 break
 
             except (ConnectionFailedError, aiohttp.ClientError):
-                self._logger.debug("Reconnect failed")
+                timeout = TIMEOUT_INCREASE_FACTOR**self._retry_count
+                self._retry_count += 1
+                self._logger.debug(
+                    "Reconnect failed, retrying in %.1fs",
+                    min(timeout, MAX_CONNECT_TIMEOUT),
+                )
+                await asyncio.sleep(min(timeout, MAX_CONNECT_TIMEOUT))
                 continue
             except HCHandshakeError:
                 self._logger.debug("Reconnect failed")
