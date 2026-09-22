@@ -564,11 +564,63 @@ class ActiveProgram(AccessMixin, AvailableMixin, Entity):
 
     _available = True
 
+    def __init__(
+        self, description: EntityDescription, appliance: HomeAppliance
+    ) -> None:
+        """
+        Active_Program Entity.
+
+        Args:
+        ----
+            description (EntityDescription): The entity description
+            appliance (HomeAppliance): Appliance
+
+        """
+        super().__init__(description, appliance)
+        self._fullOptionSet = description.get("fullOptionSet", True)
+
+    @property
+    def full_option_set(self) -> bool:
+        """FullOptionSet value."""
+        return self._fullOptionSet
+
+    def dump(self) -> dict:
+        """Dump Entity state."""
+        state = super().dump()
+        state["execufullOptionSettion"] = self.full_option_set
+        return state
+
 
 class SelectedProgram(AccessMixin, AvailableMixin, Entity):
     """Represents the Selected_Program Entity."""
 
     _available = True
+
+    def __init__(
+        self, description: EntityDescription, appliance: HomeAppliance
+    ) -> None:
+        """
+        Selected_Program Entity.
+
+        Args:
+        ----
+            description (EntityDescription): The entity description
+            appliance (HomeAppliance): Appliance
+
+        """
+        super().__init__(description, appliance)
+        self._fullOptionSet = description.get("fullOptionSet", True)
+
+    @property
+    def full_option_set(self) -> bool:
+        """FullOptionSet value."""
+        return self._fullOptionSet
+
+    def dump(self) -> dict:
+        """Dump Entity state."""
+        state = super().dump()
+        state["execufullOptionSettion"] = self.full_option_set
+        return state
 
 
 class ProtectionPort(AccessMixin, AvailableMixin, Entity):
