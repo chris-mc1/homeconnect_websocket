@@ -516,15 +516,15 @@ class Program(AvailableMixin, Entity):
         override_options: bool = False,
     ) -> None:
         """Select this Program."""
+        options = (
+            self._build_options(options=options, override_options=override_options)
+            if self._appliance._selected_program.full_option_set  # noqa: SLF001
+            else []
+        )
         message = Message(
             resource="/ro/selectedProgram",
             action=Action.POST,
-            data={
-                "program": self._uid,
-                "options": self._build_options(
-                    options=options, override_options=override_options
-                ),
-            },
+            data={"program": self._uid, "options": options},
         )
         await self._appliance.session.send_sync(message)
 
@@ -535,15 +535,15 @@ class Program(AvailableMixin, Entity):
         override_options: bool = False,
     ) -> None:
         """Start this Program, select might be required first."""
+        options = (
+            self._build_options(options=options, override_options=override_options)
+            if self._appliance._active_program.full_option_set  # noqa: SLF001
+            else []
+        )
         message = Message(
             resource="/ro/activeProgram",
             action=Action.POST,
-            data={
-                "program": self._uid,
-                "options": self._build_options(
-                    options=options, override_options=override_options
-                ),
-            },
+            data={"program": self._uid, "options": options},
         )
         await self._appliance.session.send_sync(message)
 
