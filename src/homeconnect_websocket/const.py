@@ -4,8 +4,8 @@ from typing import Final
 
 DEFAULT_HANDSHAKE_TIMEOUT: Final[int] = 60
 DEFAULT_SEND_TIMEOUT: Final[int] = 20
-MAX_CONNECT_TIMEOUT: Final[int] = 60
-TIMEOUT_INCREASE_FACTOR: Final[float] = 1.2
+INITIAL_RECONNECT_DELAY: Final = 5
+MAX_RECONNECT_DELAY: Final = 300
 
 # CID to types mapping for Description Parser
 DESCRIPTION_TYPES: Final = {

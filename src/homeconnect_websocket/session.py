@@ -14,7 +14,12 @@ from Crypto.Random import get_random_bytes
 
 from homeconnect_websocket.task_manager import TaskManager
 
-from .const import DEFAULT_SEND_TIMEOUT, ERROR_CODES
+from .const import (
+    DEFAULT_SEND_TIMEOUT,
+    ERROR_CODES,
+    INITIAL_RECONNECT_DELAY,
+    MAX_RECONNECT_DELAY,
+)
 from .errors import (
     AllreadyConnectedError,
     AuthenticationError,
@@ -520,6 +525,7 @@ class HCSessionReconnect(HCSession):
         await super().close()
 
     async def _reconnect_loop(self) -> None:
+        backoff = INITIAL_RECONNECT_DELAY
         while self._reconnect:
             try:
                 await self._socket.connect()
@@ -541,6 +547,8 @@ class HCSessionReconnect(HCSession):
 
             except (ConnectionFailedError, aiohttp.ClientError):
                 self._logger.debug("Reconnect failed")
+                await asyncio.sleep(backoff)
+                backoff = min(backoff * 2, MAX_RECONNECT_DELAY)
                 continue
             except HCHandshakeError:
                 self._logger.debug("Reconnect failed")
