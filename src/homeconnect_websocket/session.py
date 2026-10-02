@@ -516,11 +516,12 @@ class HCSessionReconnect(HCSession):
     """HomeConnect Session with reconnect."""
 
     _reconnect: bool = True
+    _reconnect_task: asyncio.Task | None = None
 
     async def connect(self) -> None:
         """Open Connection with Appliance."""
         self._reconnect = True
-        if self.connection_state in (ConnectionState.RECONNECTING):
+        if self.connection_state == ConnectionState.RECONNECTING:
             raise AllreadyConnectedError
 
         await super().connect()
@@ -528,7 +529,21 @@ class HCSessionReconnect(HCSession):
     async def close(self) -> None:
         """Close connction."""
         self._reconnect = False
+        task = self._reconnect_task
+        if task is not None and not task.done() and task is not asyncio.current_task():
+            # Don't wait for the reconnect delay to pass
+            task.cancel()
+            await asyncio.wait([task])
         await super().close()
+
+    def _start_reconnect(self) -> None:
+        if self._reconnect_task is not None and not self._reconnect_task.done():
+            # Reconnect loop is running, it handles the closed socket
+            return
+        self._set_connection_state(ConnectionState.RECONNECTING)
+        self._reconnect_task = self._task_manager.create_background_task(
+            self._reconnect_loop()
+        )
 
     async def _reconnect_loop(self) -> None:
         backoff = INITIAL_RECONNECT_DELAY
@@ -557,9 +572,14 @@ class HCSessionReconnect(HCSession):
                 backoff = min(backoff * 2, MAX_RECONNECT_DELAY)
                 continue
             except HCHandshakeError:
-                self._logger.debug("Reconnect failed")
-                self._set_connection_state(ConnectionState.CLOSING)
-                break
+                # Appliance accepted the connection but the handshake failed, e.g.
+                # "Invalid init message: None" while its network is still waking up
+                self._logger.debug("Reconnect handshake failed", exc_info=True)
+                await self._socket.close()
+                self._set_connection_state(ConnectionState.RECONNECTING)
+                await asyncio.sleep(backoff)
+                backoff = min(backoff * 2, MAX_RECONNECT_DELAY)
+                continue
             except asyncio.CancelledError:
                 self._logger.debug("Reconnect cancelled")
                 raise
@@ -587,7 +607,6 @@ class HCSessionReconnect(HCSession):
                     exc_info=self._socket._websocket.exception(),  # noqa: SLF001
                 )
                 if self._reconnect:
-                    self._set_connection_state(ConnectionState.RECONNECTING)
-                    self._task_manager.create_background_task(self._reconnect_loop())
+                    self._start_reconnect()
                 else:
                     self._set_connection_state(ConnectionState.ABNORMAL_CLOSURE)

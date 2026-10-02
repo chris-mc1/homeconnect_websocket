@@ -54,9 +54,10 @@ class TaskManager:
         """Create a new background Task."""
         task: asyncio.Task[R] = self._loop.create_task(target, eager_start=eager_start)
         if eager_start and task.done():
-            return
+            return task
         self._background_tasks.add(task)
         task.add_done_callback(self._background_tasks.remove)
+        return task
 
     async def block_till_done(self, *, wait_background_tasks: bool = False) -> None:
         """
