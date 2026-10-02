@@ -268,6 +268,12 @@ class HCSession(HCSessionBase):
             self._logger.debug(msg, exc_info=True)
             self._set_connection_state(ConnectionState.ABNORMAL_CLOSURE)
             raise ConnectionFailedError(msg) from exc
+        except aiohttp.ClientResponseError as exc:
+            # e.g. WSServerHandshakeError 503, some appliances send it when switched off
+            msg = f"Appliance refused connection: {exc.status} {exc.message}"
+            self._logger.debug(msg, exc_info=True)
+            self._set_connection_state(ConnectionState.ABNORMAL_CLOSURE)
+            raise ConnectionFailedError(msg) from exc
 
         if self._do_handshake:
             init_message = await self._pre_handshake()

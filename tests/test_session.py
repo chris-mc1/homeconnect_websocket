@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 from unittest.mock import ANY, AsyncMock, call
 
 import pytest
+from aiohttp import web
+from aiohttp.test_utils import TestServer
 from homeconnect_websocket import (
     AllreadyConnectedError,
     AuthenticationError,
@@ -367,6 +369,40 @@ async def test_session_connect_failed() -> None:
     assert session.connection_state == ConnectionState.ABNORMAL_CLOSURE
 
     await session.close()
+
+    connection_callback.assert_has_awaits(
+        [
+            call(ConnectionState.CONNECTING),
+            call(ConnectionState.ABNORMAL_CLOSURE),
+        ]
+    )
+
+
+@pytest.mark.asyncio
+async def test_session_connect_http_error() -> None:
+    """Test Session connection refused with HTTP error (e.g. 503 while switched off)."""
+    app = web.Application()
+    app.add_routes([web.get("/homeconnect", lambda _: web.Response(status=503))])
+    test_server = TestServer(app, port=80)
+    await test_server.start_server()
+    connection_callback = AsyncMock()
+
+    session = HCSession(
+        test_server.host,
+        app_name=TEST_APP_NAME,
+        app_id=TEST_APP_ID,
+        psk64=None,
+        connection_state_callback=connection_callback,
+    )
+
+    with pytest.raises(ConnectionFailedError, match="503"):
+        await session.connect()
+
+    assert not session.connected
+    assert session.connection_state == ConnectionState.ABNORMAL_CLOSURE
+
+    await session.close()
+    await test_server.close()
 
     connection_callback.assert_has_awaits(
         [
