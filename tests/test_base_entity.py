@@ -230,9 +230,7 @@ async def test_set_shadow_fail() -> None:
     )
     appliance = AsyncMock()
     entity = Entity(description, appliance)
-    appliance.session.send_sync.side_effect = CodeResponsError(
-        code=400, resource="/ro/values"
-    )
+    appliance.session.send_sync.side_effect = CodeResponsError(code=400, resource="/ro/values")
 
     assert entity.value_raw is None
     assert entity.value_shadow is None

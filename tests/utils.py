@@ -46,7 +46,7 @@ class ApplianceServer:
             decode_msg = await self._receive(msg)
             try:
                 hc_msg = load_message(decode_msg)
-            except (ValueError, AttributeError):
+            except ValueError, AttributeError:
                 self.messages.append(decode_msg)
             else:
                 self.messages.append(hc_msg)
@@ -87,9 +87,7 @@ class ApplianceServer:
         response_msg = None
         if msg.resource == "/ci/services":
             response_msg = msg.responde(self.message_set["services"])
-        elif (
-            response_data := self.message_set["responses"].get(msg.resource) is not None
-        ):
+        elif response_data := self.message_set["responses"].get(msg.resource) is not None:
             response_msg = msg.responde(response_data)
         else:
             response_msg = msg.responde()
@@ -165,9 +163,7 @@ class AesServerEncryption:
         pad_len = 16 - (len(clear_msg) % 16)
         if pad_len == 1:
             pad_len += 16
-        clear_msg = (
-            clear_msg + b"\x00" + get_random_bytes(pad_len - 2) + bytearray([pad_len])
-        )
+        clear_msg = clear_msg + b"\x00" + get_random_bytes(pad_len - 2) + bytearray([pad_len])
 
         enc_msg = self.aes_encrypt.encrypt(clear_msg)
         self.last_tx_hmac = self.hmac_encrypt(enc_msg)

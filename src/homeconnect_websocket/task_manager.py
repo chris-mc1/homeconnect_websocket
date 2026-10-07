@@ -73,9 +73,7 @@ class TaskManager:
         while tasks := [
             task
             for task in (
-                self._tasks | self._background_tasks
-                if wait_background_tasks
-                else self._tasks
+                self._tasks | self._background_tasks if wait_background_tasks else self._tasks
             )
             if task is not current_task
         ]:
@@ -95,9 +93,7 @@ class TaskManager:
             await self.block_till_done(wait_background_tasks=True)
         except TimeoutError:
             while tasks := [
-                task
-                for task in (self._tasks | self._background_tasks)
-                if task is not current_task
+                task for task in (self._tasks | self._background_tasks) if task is not current_task
             ]:
                 for task in tasks:
                     task.cancel()

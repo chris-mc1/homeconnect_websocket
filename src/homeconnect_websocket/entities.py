@@ -143,25 +143,17 @@ class Entity(ABC):
     _enumeration: dict | None = None
     _rev_enumeration: dict
 
-    def __init__(
-        self, description: EntityDescription, appliance: HomeAppliance
-    ) -> None:
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
         """BaseEntity Class."""
         self._appliance: HomeAppliance = appliance
         self._uid = description["uid"]
         self._name = description["name"]
         self._callbacks = set()
         self._tasks = set()
-        self._type = TYPE_MAPPING.get(
-            description.get("protocolType"), lambda value: value
-        )
+        self._type = TYPE_MAPPING.get(description.get("protocolType"), lambda value: value)
         if "enumeration" in description:
-            self._enumeration = {
-                int(k): v for k, v in description["enumeration"].items()
-            }
-            self._rev_enumeration = {
-                v: int(k) for k, v in description["enumeration"].items()
-            }
+            self._enumeration = {int(k): v for k, v in description["enumeration"].items()}
+            self._rev_enumeration = {v: int(k) for k, v in description["enumeration"].items()}
         try:
             if "initValue" in description:
                 self._value = self._type(description["initValue"])
@@ -266,9 +258,7 @@ class AccessMixin(Entity):
 
     _access: Access | None = None
 
-    def __init__(
-        self, description: EntityDescription, appliance: HomeAppliance
-    ) -> None:
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
         """
         Mixin for Entities with access attribute.
 
@@ -311,9 +301,7 @@ class AvailableMixin(Entity):
 
     _available: bool | None = None
 
-    def __init__(
-        self, description: EntityDescription, appliance: HomeAppliance
-    ) -> None:
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
         """
         Mixin for Entities with available attribute.
 
@@ -358,9 +346,7 @@ class MinMaxMixin(Entity):
     _max: float | None = None
     _step: float | None = None
 
-    def __init__(
-        self, description: EntityDescription, appliance: HomeAppliance
-    ) -> None:
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
         """
         Mixin for Entities with available Min and Max values.
 
@@ -425,15 +411,11 @@ class Event(Entity):
 
     async def acknowledge(self) -> None:
         """Acknowledge Event."""
-        await self._appliance.commands["BSH.Common.Command.AcknowledgeEvent"].execute(
-            self._uid
-        )
+        await self._appliance.commands["BSH.Common.Command.AcknowledgeEvent"].execute(self._uid)
 
     async def reject(self) -> None:
         """Reject Event."""
-        await self._appliance.commands["BSH.Common.Command.RejectEvent"].execute(
-            self._uid
-        )
+        await self._appliance.commands["BSH.Common.Command.RejectEvent"].execute(self._uid)
 
 
 class Command(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
@@ -464,9 +446,7 @@ class Option(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
 class Program(AvailableMixin, Entity):
     """Represents an Program Entity."""
 
-    def __init__(
-        self, description: EntityDescription, appliance: HomeAppliance
-    ) -> None:
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
         """
         Program Entity.
 
@@ -564,9 +544,7 @@ class ActiveProgram(AccessMixin, AvailableMixin, Entity):
 
     _available = True
 
-    def __init__(
-        self, description: EntityDescription, appliance: HomeAppliance
-    ) -> None:
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
         """
         Active_Program Entity.
 
@@ -596,9 +574,7 @@ class SelectedProgram(AccessMixin, AvailableMixin, Entity):
 
     _available = True
 
-    def __init__(
-        self, description: EntityDescription, appliance: HomeAppliance
-    ) -> None:
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
         """
         Selected_Program Entity.
 

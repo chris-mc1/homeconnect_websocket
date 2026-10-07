@@ -28,9 +28,7 @@ async def test_acknowledge() -> None:
     entity = Event(description, appliance)
     await entity.acknowledge()
 
-    appliance.commands[
-        "BSH.Common.Command.AcknowledgeEvent"
-    ].execute.assert_called_once_with(1)
+    appliance.commands["BSH.Common.Command.AcknowledgeEvent"].execute.assert_called_once_with(1)
 
 
 @pytest.mark.asyncio
@@ -45,6 +43,4 @@ async def test_reject() -> None:
     entity = Event(description, appliance)
     await entity.reject()
 
-    appliance.commands[
-        "BSH.Common.Command.RejectEvent"
-    ].execute.assert_called_once_with(1)
+    appliance.commands["BSH.Common.Command.RejectEvent"].execute.assert_called_once_with(1)

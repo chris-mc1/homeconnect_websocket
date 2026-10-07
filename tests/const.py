@@ -117,9 +117,7 @@ DEVICE_MESSAGE_SET_2 = {
         {"service": "ci", "version": 1},
     ],
     "responses": {
-        "/ci/authentication": [
-            {"response": "gkkJ9rRlmilrqoT1pJpNOZvM2686nYHcEsVTOCqfRk8"}
-        ],
+        "/ci/authentication": [{"response": "gkkJ9rRlmilrqoT1pJpNOZvM2686nYHcEsVTOCqfRk8"}],
         "/ci/info": [
             {
                 "deviceID": "240210038618500561",
@@ -155,9 +153,7 @@ DEVICE_MESSAGE_SET_2 = {
                 },
             }
         ],
-        "/ci/wifiSetting": [
-            {"SSID": "ssid", "AutomaticIPv4": True, "AutomaticIPv6": True}
-        ],
+        "/ci/wifiSetting": [{"SSID": "ssid", "AutomaticIPv4": True, "AutomaticIPv6": True}],
         "/ro/allDescriptionChanges": [
             {"uid": 555, "parentUID": 261, "access": "NONE"},
         ],
@@ -182,9 +178,7 @@ DEVICE_MESSAGE_SET_3 = {
         {"service": "ni", "version": 1},
     ],
     "responses": {
-        "/ci/authentication": [
-            {"response": "gkkJ9rRlmilrqoT1pJpNOZvM2686nYHcEsVTOCqfRk8"}
-        ],
+        "/ci/authentication": [{"response": "gkkJ9rRlmilrqoT1pJpNOZvM2686nYHcEsVTOCqfRk8"}],
         "/ci/info": [
             {
                 "deviceID": "240210038618500561",

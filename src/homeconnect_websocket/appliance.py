@@ -208,14 +208,10 @@ class HomeAppliance:
             self._active_program = entity
 
         if "selectedProgram" in description:
-            entity = self._create_entity(
-                description["selectedProgram"], SelectedProgram
-            )
+            entity = self._create_entity(description["selectedProgram"], SelectedProgram)
             self._selected_program = entity
 
-    def _create_entity(
-        self, description: EntityDescription, cls: type[Entity]
-    ) -> Entity:
+    def _create_entity(self, description: EntityDescription, cls: type[Entity]) -> Entity:
         try:
             entity = cls(description, self)
         except Exception:
@@ -248,8 +244,7 @@ class HomeAppliance:
         """Return the current Active Program entity or None if no Program is active."""
         return (
             None
-            if self._active_program.value_shadow == 0
-            or self._active_program.value_shadow is None
+            if self._active_program.value_shadow == 0 or self._active_program.value_shadow is None
             else self.entities_uid[self._active_program.value]
         )
 

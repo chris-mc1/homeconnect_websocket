@@ -89,9 +89,7 @@ class CallbackManager:
     ) -> None:
         await self.release()
 
-    async def _wrap_callback(
-        self, callback: Callable[[Entity], Coroutine], entity: Entity
-    ) -> None:
+    async def _wrap_callback(self, callback: Callable[[Entity], Coroutine], entity: Entity) -> None:
         """Call the external message handler."""
         try:
             await callback(entity)

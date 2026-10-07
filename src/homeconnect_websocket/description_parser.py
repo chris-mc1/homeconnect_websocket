@@ -61,10 +61,7 @@ def add_enum_subsets(features: FeatureMap, description: list[dict]) -> None:
     """Add Enum subsets to FeatureMap."""
     if "enumerationTypeList" in description:
         for enum in description["enumerationTypeList"]["enumerationType"]:
-            if (
-                "@subsetOf" in enum
-                and int(enum["@enid"], base=16) not in features["enumeration"]
-            ):
+            if "@subsetOf" in enum and int(enum["@enid"], base=16) not in features["enumeration"]:
                 super_enum = features["enumeration"][int(enum["@subsetOf"], base=16)]
                 subset_enum = {}
                 for value in enum["enumeration"]:
@@ -106,19 +103,13 @@ def parse_element(
         try:
             if attr_name == "@uid":
                 element_out["uid"] = int(attr_value, base=16)
-                element_out["name"] = features["feature"][
-                    int(xml_description["@uid"], base=16)
-                ]
+                element_out["name"] = features["feature"][int(xml_description["@uid"], base=16)]
             elif attr_name == "@refCID":
                 element_out["contentType"] = DESCRIPTION_TYPES[int(attr_value, base=16)]
-                element_out["protocolType"] = DESCRIPTION_PROTOCOL_TYPES[
-                    int(attr_value, base=16)
-                ]
+                element_out["protocolType"] = DESCRIPTION_PROTOCOL_TYPES[int(attr_value, base=16)]
                 element_out["refCID"] = int(attr_value, base=16)
             elif attr_name == "@enumerationType":
-                element_out["enumeration"] = features["enumeration"][
-                    int(attr_value, base=16)
-                ]
+                element_out["enumeration"] = features["enumeration"][int(attr_value, base=16)]
             elif attr_name in (
                 "@available",
                 "@notifyOnChange",
@@ -193,15 +184,9 @@ PARSERS = {
     "commandList": {"parser": parse_elements},
     "program": {"parser": partial(parse_element, key="program")},
     "programGroup": {"parser": parse_elements},
-    "activeProgram": {
-        "parser": partial(parse_element, key="activeProgram", is_list=False)
-    },
-    "selectedProgram": {
-        "parser": partial(parse_element, key="selectedProgram", is_list=False)
-    },
-    "protectionPort": {
-        "parser": partial(parse_element, key="protectionPort", is_list=False)
-    },
+    "activeProgram": {"parser": partial(parse_element, key="activeProgram", is_list=False)},
+    "selectedProgram": {"parser": partial(parse_element, key="selectedProgram", is_list=False)},
+    "protectionPort": {"parser": partial(parse_element, key="protectionPort", is_list=False)},
 }
 
 
@@ -284,9 +269,7 @@ def main() -> None:
         dest="feature_path",
         help="Feature mapping files",
     )
-    arg_parser.add_argument(
-        "-o", type=Path, required=True, dest="output_file", help="Output file"
-    )
+    arg_parser.add_argument("-o", type=Path, required=True, dest="output_file", help="Output file")
     args = arg_parser.parse_args()
 
     with Path(args.description_path).open() as file:

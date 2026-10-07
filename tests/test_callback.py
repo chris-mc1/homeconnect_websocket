@@ -33,9 +33,7 @@ async def test_call_callback(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     monkeypatch.setattr(homeconnect_websocket.appliance, "HCSession", MagicMock())
-    appliance = HomeAppliance(
-        description, "127.0.0.1", TEST_APP_NAME, TEST_APP_ID, TEST_PSK64
-    )
+    appliance = HomeAppliance(description, "127.0.0.1", TEST_APP_NAME, TEST_APP_ID, TEST_PSK64)
     entity = appliance.entities_uid[1]
 
     callback_1 = AsyncMock()
@@ -99,9 +97,7 @@ async def test_callback_lock(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     monkeypatch.setattr(homeconnect_websocket.appliance, "HCSession", MagicMock())
-    appliance = HomeAppliance(
-        description, "127.0.0.1", TEST_APP_NAME, TEST_APP_ID, TEST_PSK64
-    )
+    appliance = HomeAppliance(description, "127.0.0.1", TEST_APP_NAME, TEST_APP_ID, TEST_PSK64)
     entity = appliance.entities_uid[1]
 
     callback = AsyncMock()
@@ -110,12 +106,8 @@ async def test_callback_lock(monkeypatch: pytest.MonkeyPatch) -> None:
     await appliance.callback_manager.acquire()  # Acquire 1
     await appliance.callback_manager.acquire()  # Acquire 2
 
-    await entity.update(
-        {"uid": 1, "available": True, "access": Access.READ_WRITE, "value": 1}
-    )
-    await entity.update(
-        {"uid": 1, "available": True, "access": Access.READ_WRITE, "value": 2}
-    )
+    await entity.update({"uid": 1, "available": True, "access": Access.READ_WRITE, "value": 1})
+    await entity.update({"uid": 1, "available": True, "access": Access.READ_WRITE, "value": 2})
 
     await appliance._task_manager.block_till_done()
     callback.assert_not_awaited()
@@ -146,9 +138,7 @@ async def test_batch_callback(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     monkeypatch.setattr(homeconnect_websocket.appliance, "HCSession", MagicMock())
-    appliance = HomeAppliance(
-        description, "127.0.0.1", TEST_APP_NAME, TEST_APP_ID, TEST_PSK64
-    )
+    appliance = HomeAppliance(description, "127.0.0.1", TEST_APP_NAME, TEST_APP_ID, TEST_PSK64)
     entity = appliance.entities_uid[1]
 
     callback = AsyncMock()

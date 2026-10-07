@@ -62,9 +62,7 @@ class HCSocket:
 
         self._websocket = await self._ws_connect()
 
-    async def _ws_connect(
-        self, *args: Any, **kwargs: Any
-    ) -> aiohttp.ClientWebSocketResponse:
+    async def _ws_connect(self, *args: Any, **kwargs: Any) -> aiohttp.ClientWebSocketResponse:
         if self._owned_session and self._session is None:
             self._session = aiohttp.ClientSession()
 
@@ -231,9 +229,7 @@ class AesSocket(HCSocket):
         pad_len = 16 - (len(clear_msg) % 16)
         if pad_len == 1:
             pad_len += 16
-        clear_msg = (
-            clear_msg + b"\x00" + get_random_bytes(pad_len - 2) + bytearray([pad_len])
-        )
+        clear_msg = clear_msg + b"\x00" + get_random_bytes(pad_len - 2) + bytearray([pad_len])
 
         enc_msg = self._aes_encrypt.encrypt(clear_msg)
 
