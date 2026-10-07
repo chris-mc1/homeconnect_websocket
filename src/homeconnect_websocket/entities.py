@@ -481,7 +481,14 @@ class Program(AvailableMixin, Entity):
             {"uid": option_uid, "value": option_value}
             for option_uid, option_value in options.items()
         ]
-        if override_options is False:
+        full_option_set = (
+            self._appliance.selected_program_entity is not None
+            and self._appliance.selected_program_entity.full_option_set
+        ) or (
+            self._appliance.active_program_entity is not None
+            and self._appliance.active_program_entity.full_option_set
+        )
+        if override_options is False and full_option_set:
             _options.extend(
                 {"uid": option.uid, "value": option.value_shadow}
                 for option in self._options
@@ -496,15 +503,13 @@ class Program(AvailableMixin, Entity):
         override_options: bool = False,
     ) -> None:
         """Select this Program."""
-        options = (
-            self._build_options(options=options, override_options=override_options)
-            if self._appliance._selected_program.full_option_set  # noqa: SLF001
-            else []
-        )
         message = Message(
             resource="/ro/selectedProgram",
             action=Action.POST,
-            data={"program": self._uid, "options": options},
+            data={
+                "program": self._uid,
+                "options": self._build_options(options=options, override_options=override_options),
+            },
         )
         await self._appliance.session.send_sync(message)
 
@@ -515,15 +520,13 @@ class Program(AvailableMixin, Entity):
         override_options: bool = False,
     ) -> None:
         """Start this Program, select might be required first."""
-        options = (
-            self._build_options(options=options, override_options=override_options)
-            if self._appliance._active_program.full_option_set  # noqa: SLF001
-            else []
-        )
         message = Message(
             resource="/ro/activeProgram",
             action=Action.POST,
-            data={"program": self._uid, "options": options},
+            data={
+                "program": self._uid,
+                "options": self._build_options(options=options, override_options=override_options),
+            },
         )
         await self._appliance.session.send_sync(message)
 
