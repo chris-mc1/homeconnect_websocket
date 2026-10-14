@@ -69,6 +69,13 @@ class MockAppliance(HomeAppliance):
         self.programs = {}
         self._create_entities(_description)
 
+    def dump(self) -> dict:
+        """Dump Appliance state."""
+        return {
+            "entities": [entity.dump() for entity in self.entities.values()],
+            "service_versions": None,
+        }
+
 
 @pytest.fixture
 def mock_homeconnect_appliance() -> MockApplianceType:
