@@ -568,7 +568,7 @@ class ActiveProgram(AccessMixin, AvailableMixin, Entity):
     def dump(self) -> dict:
         """Dump Entity state."""
         state = super().dump()
-        state["execufullOptionSettion"] = self.full_option_set
+        state["fullOptionSettion"] = self.full_option_set
         return state
 
 
@@ -598,7 +598,7 @@ class SelectedProgram(AccessMixin, AvailableMixin, Entity):
     def dump(self) -> dict:
         """Dump Entity state."""
         state = super().dump()
-        state["execufullOptionSettion"] = self.full_option_set
+        state["fullOptionSettion"] = self.full_option_set
         return state
 
 

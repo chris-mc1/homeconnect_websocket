@@ -14,7 +14,8 @@ BLOCK_TIMEOUT = 20
 class TaskManager:
     """Manage asyncio Task."""
 
-    _tasks: set[asyncio.Future[Any]]
+    _tasks: set[asyncio.Task]
+    _background_tasks: set[asyncio.Task]
     _loop: asyncio.AbstractEventLoop
 
     def __init__(
@@ -92,8 +93,19 @@ class TaskManager:
         try:
             await self.block_till_done(wait_background_tasks=True)
         except TimeoutError:
-            while tasks := [
+            running_tasks = [
                 task for task in (self._tasks | self._background_tasks) if task is not current_task
-            ]:
-                for task in tasks:
-                    task.cancel()
+            ]
+            for task in running_tasks:
+                if task.done() or task.cancelling():
+                    continue
+                task.cancel()
+                try:
+                    async with asyncio.timeout(0.1):
+                        await task
+                except asyncio.CancelledError:
+                    pass
+                except TimeoutError:
+                    self._logger.exception("Could not cancel Task, timed out %s", task)
+                except Exception:
+                    self._logger.exception("Could not cancel Task %s", task)
