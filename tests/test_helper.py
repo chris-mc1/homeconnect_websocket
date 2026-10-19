@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from homeconnect_websocket.helpers import convert_bool
+from homeconnect_websocket.helpers import convert_bool, format_hex
 
 
 def test_convert_bool() -> None:
@@ -26,3 +26,11 @@ def test_convert_bool() -> None:
         convert_bool({})
     with pytest.raises(TypeError):
         convert_bool("not bool")
+
+
+def test_format_hex() -> None:
+    """Test format_hex."""
+    assert format_hex(0x00) == "0x00"
+    assert format_hex(0xFF) == "0xFF"
+    assert format_hex(0x1FF) == "0x01FF"
+    assert format_hex(0x100FF) == "0x0100FF"
