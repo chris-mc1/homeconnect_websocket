@@ -7,8 +7,8 @@ DEFAULT_SEND_TIMEOUT: Final[int] = 20
 INITIAL_RECONNECT_DELAY: Final = 5
 MAX_RECONNECT_DELAY: Final = 300
 
-# CID to types mapping for Description Parser
-DESCRIPTION_TYPES: Final = {
+# CID to content type mapping for Description Parser
+DESCRIPTION_CONTENT_TYPES: Final = {
     1: "boolean",
     2: "integer",
     3: "enumeration",
@@ -125,6 +125,7 @@ DESCRIPTION_TYPES: Final = {
     193: "weightOuncesList",
     194: "rectangle2DList",
 }
+DESCRIPTION_TYPES = DESCRIPTION_CONTENT_TYPES  # For Compatibility
 
 # CID to protocol type mapping for Description Parser
 DESCRIPTION_PROTOCOL_TYPES: Final = {
