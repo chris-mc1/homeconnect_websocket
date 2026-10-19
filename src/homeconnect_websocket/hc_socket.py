@@ -101,6 +101,8 @@ class HCSocket:
     async def receive(self, timeout: float | None = None) -> str:  # noqa: ASYNC109
         """Recive single message."""
         msg = await self._websocket.receive(timeout)
+        if msg.type == aiohttp.WSMsgType.ERROR:
+            raise msg.data
         return await self._receive(msg)
 
     def __aiter__(self) -> HCSocket:
@@ -108,6 +110,8 @@ class HCSocket:
 
     async def __anext__(self) -> str:
         msg = await self._websocket.__anext__()
+        if msg.type == aiohttp.WSMsgType.ERROR:
+            raise msg.data
         return await self._receive(msg)
 
 
@@ -161,8 +165,6 @@ class TlsSocket(HCSocket):
 
     async def _receive(self, message: aiohttp.WSMessage) -> str:
         self._logger.debug("Received %s: %s", self._url, str(message.data))
-        if message.type == aiohttp.WSMsgType.ERROR:
-            raise message.data
         return str(message.data)
 
 
