@@ -527,6 +527,8 @@ class HCSessionReconnect(HCSession):
             except asyncio.CancelledError:
                 self._logger.debug("Reconnect cancelled")
                 raise
+            except TimeoutError:
+                self._logger.debug("Reconnect timed out")
             except Exception:
                 self._logger.exception("Reconnect exception")
                 await self.close()
