@@ -287,7 +287,8 @@ async def test_dump() -> None:
         max=10,
         stepSize=2,
         enumeration={0: "a", 1: "b"},
-        protocolType="Integer",
+        refCID=0x03,
+        refDID=0x80,
     )
     entity = Status(description, AsyncMock())
     await entity.update({"value": 1})
@@ -302,4 +303,9 @@ async def test_dump() -> None:
         "min": 0,
         "max": 10,
         "step": 2,
+        "CID": "0x03",
+        "DID": "0x80",
+        "contentType": "enumeration",
+        "dataType": "UInt8",
+        "protocolType": "Integer",
     }

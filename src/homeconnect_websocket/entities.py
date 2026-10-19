@@ -5,8 +5,9 @@ from abc import ABC
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, TypedDict
 
+from .const import DESCRIPTION_CONTENT_TYPES, DESCRIPTION_DATA_TYPES, DESCRIPTION_PROTOCOL_TYPES
 from .errors import AccessError
-from .helpers import TYPE_MAPPING
+from .helpers import TYPE_MAPPING, format_hex
 from .message import Action, Message
 
 if TYPE_CHECKING:
@@ -398,16 +399,71 @@ class MinMaxMixin(Entity):
         return state
 
 
-class Status(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
+class TypeMixin(Entity):
+    """Mixin for Entities with Type info."""
+
+    _cid: int | None = None
+    _did: int | None = None
+
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
+        """
+        Mixin for Entities with Type info.
+
+        Args:
+        ----
+            description (EntityDescription): The entity description
+            appliance (HomeAppliance): Appliance
+
+        """
+        super().__init__(description, appliance)
+        self._cid = description.get("refCID", self._cid)
+        self._did = description.get("refDID", self._did)
+
+    @property
+    def content_type(self) -> str | None:
+        """Content Type."""
+        if self._cid is None:
+            return "None"
+        return DESCRIPTION_CONTENT_TYPES.get(self._cid, "Unknown")
+
+    @property
+    def protocol_type(self) -> str | None:
+        """Protocol Type."""
+        if self._cid is None:
+            return "None"
+        return DESCRIPTION_PROTOCOL_TYPES.get(self._cid, "Unknown")
+
+    @property
+    def data_type(self) -> str | None:
+        """Data Type."""
+        if self._did is None:
+            return "None"
+        return DESCRIPTION_DATA_TYPES.get(self._did, "Unknown")
+
+    def dump(self) -> dict:
+        """Dump Entity state."""
+        state = super().dump()
+        state["CID"] = None if self._cid is None else format_hex(self._cid)
+        state["DID"] = None if self._did is None else format_hex(self._did)
+        state["contentType"] = self.content_type
+        state["protocolType"] = self.protocol_type
+        state["dataType"] = self.data_type
+        return state
+
+
+class Status(AccessMixin, AvailableMixin, MinMaxMixin, TypeMixin, Entity):
     """Represents an Settings Entity."""
 
 
-class Setting(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
+class Setting(AccessMixin, AvailableMixin, MinMaxMixin, TypeMixin, Entity):
     """Represents an Settings Entity."""
 
 
-class Event(Entity):
+class Event(TypeMixin, Entity):
     """Represents an Event Entity."""
+
+    _cid = 0x03
+    _did = 0x80
 
     async def acknowledge(self) -> None:
         """Acknowledge Event."""
@@ -439,7 +495,7 @@ class Command(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
         await self._appliance.session.send_sync(message)
 
 
-class Option(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
+class Option(AccessMixin, AvailableMixin, MinMaxMixin, TypeMixin, Entity):
     """Represents an Option Entity."""
 
 
