@@ -5,6 +5,8 @@ import re
 from dataclasses import dataclass
 from enum import StrEnum
 
+from json_repair import json_repair
+
 
 class Action(StrEnum):
     """Message Actions."""
@@ -18,7 +20,7 @@ class Action(StrEnum):
 def load_message(msg_str: str | dict) -> Message:
     """Load Message from json."""
     message = Message()
-    msg = json.loads(msg_str) if isinstance(msg_str, str) else msg_str
+    msg = json_repair.loads(msg_str) if isinstance(msg_str, str) else msg_str
     message.sid = int(msg["sID"])
     message.msg_id = int(msg["msgID"])
     message.resource = msg["resource"]

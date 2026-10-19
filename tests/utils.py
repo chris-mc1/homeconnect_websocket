@@ -46,7 +46,7 @@ class ApplianceServer:
             decode_msg = await self._receive(msg)
             try:
                 hc_msg = load_message(decode_msg)
-            except ValueError, AttributeError:
+            except Exception:  # noqa: BLE001
                 self.messages.append(decode_msg)
             else:
                 self.messages.append(hc_msg)

@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import contextlib
-import json
 from math import ceil
 from typing import Final
+
+import json_repair
 
 
 def convert_bool(obj: str | bool | float) -> bool:  # noqa: FBT001
@@ -29,14 +30,8 @@ def load_object(obj_str: str) -> dict:
     """Load complex objects from json strings."""
     if isinstance(obj_str, str):
         try:
-            return json.loads(obj_str)
-        except json.JSONDecodeError as exc:
-            # Workaround for json with extra quote
-            try:
-                return json.loads(obj_str.replace(']"', "]"))
-            except json.JSONDecodeError:
-                pass
-
+            return json_repair.loads(obj_str)
+        except Exception as exc:
             msg = "Can't decode JSON"
             raise TypeError(msg) from exc
     return obj_str
