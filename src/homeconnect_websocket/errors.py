@@ -35,7 +35,7 @@ class AccessError(HomeConnectError):
 
 
 class HCConnectionError(HomeConnectError):
-    """Errors HomeConnect ."""
+    """General HomeConnect connction error."""
 
 
 class NotConnectedError(HCConnectionError):

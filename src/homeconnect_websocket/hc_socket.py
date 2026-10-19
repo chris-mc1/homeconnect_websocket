@@ -12,7 +12,7 @@ import yarl
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 
-from .errors import AuthenticationError, NotConnectedError
+from .errors import AuthenticationError, HCConnectionError, NotConnectedError
 
 
 def _make_url(host: str, *, ssl: bool) -> yarl.URL:
@@ -73,6 +73,16 @@ class HCSocket:
         if self.closed:
             raise NotConnectedError
         self._logger.debug("Send     %s: %s", self._url, message)
+        try:
+            await self._send(message)
+        except aiohttp.ClientError as exc:
+            self._logger.debug("Failed to send message %s", message)
+            msg = "Failed to send message"
+            raise HCConnectionError(msg) from exc
+
+    @abstractmethod
+    async def _send(self, message: str) -> None:
+        """Send message."""
         await self._websocket.send_str(message)
 
     @abstractmethod
