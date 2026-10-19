@@ -105,8 +105,12 @@ def parse_element(
                 element_out["uid"] = int(attr_value, base=16)
                 element_out["name"] = features["feature"][int(xml_description["@uid"], base=16)]
             elif attr_name == "@refCID":
-                element_out["contentType"] = DESCRIPTION_CONTENT_TYPES[int(attr_value, base=16)]
-                element_out["protocolType"] = DESCRIPTION_PROTOCOL_TYPES[int(attr_value, base=16)]
+                element_out["contentType"] = DESCRIPTION_CONTENT_TYPES.get(
+                    int(attr_value, base=16), "Unknown"
+                )
+                element_out["protocolType"] = DESCRIPTION_PROTOCOL_TYPES.get(
+                    int(attr_value, base=16), "Unknown"
+                )
                 element_out["refCID"] = int(attr_value, base=16)
             elif attr_name == "@enumerationType":
                 element_out["enumeration"] = features["enumeration"][int(attr_value, base=16)]
