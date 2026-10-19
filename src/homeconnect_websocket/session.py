@@ -520,15 +520,8 @@ class HCSessionReconnect(HCSession):
                 self._set_connection_state(ConnectionState.CONNECTED)
                 break
 
-            except ConnectionFailedError, aiohttp.ClientError:
+            except ConnectionFailedError, aiohttp.ClientError, HCHandshakeError:
                 self._logger.debug("Reconnect failed")
-                await asyncio.sleep(backoff)
-                backoff = min(backoff * 2, MAX_RECONNECT_DELAY)
-                continue
-            except HCHandshakeError:
-                self._logger.debug("Reconnect failed")
-                self._set_connection_state(ConnectionState.CLOSING)
-                break
             except asyncio.CancelledError:
                 self._logger.debug("Reconnect cancelled")
                 raise
@@ -536,6 +529,9 @@ class HCSessionReconnect(HCSession):
                 self._logger.exception("Reconnect exception")
                 await self.close()
                 break
+
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, MAX_RECONNECT_DELAY)
 
     async def _wrap_recv_loop(self) -> None:
         try:
