@@ -14,7 +14,12 @@ from Crypto.Random import get_random_bytes
 
 from homeconnect_websocket.task_manager import TaskManager
 
-from .const import DEFAULT_SEND_TIMEOUT, ERROR_CODES
+from .const import (
+    DEFAULT_SEND_TIMEOUT,
+    ERROR_CODES,
+    INITIAL_RECONNECT_DELAY,
+    MAX_RECONNECT_DELAY,
+)
 from .errors import (
     AllreadyConnectedError,
     AuthenticationError,
@@ -70,8 +75,7 @@ class HCSessionBase:
         *,
         aiohttp_session: aiohttp.ClientSession | None = None,
         logger: logging.Logger | None = None,
-        connection_state_callback: Callable[[ConnectionState], Awaitable[None]]
-        | None = None,
+        connection_state_callback: Callable[[ConnectionState], Awaitable[None]] | None = None,
         task_manager: TaskManager | None = None,
     ) -> None:
         """HomeConnect Session Baseclass."""
@@ -91,9 +95,7 @@ class HCSessionBase:
         # create socket
         if self._iv64:
             self._logger.debug("Got iv64, using AES socket")
-            self._socket = AesSocket(
-                self._host, self._psk64, self._iv64, aiohttp_session, logger
-            )
+            self._socket = AesSocket(self._host, self._psk64, self._iv64, aiohttp_session, logger)
         elif self._psk64:
             self._logger.debug("No iv64, using TLS socket")
             self._socket = TlsSocket(self._host, self._psk64, aiohttp_session, logger)
@@ -104,10 +106,7 @@ class HCSessionBase:
     @property
     def connected(self) -> bool:
         """Is connected."""
-        return (
-            not self._socket.closed
-            and self.connection_state == ConnectionState.CONNECTED
-        )
+        return not self._socket.closed and self.connection_state == ConnectionState.CONNECTED
 
     @abstractmethod
     async def _message_handler(self, message: Message) -> None:
@@ -125,9 +124,7 @@ class HCSessionBase:
         state_change = self.connection_state != new_state
         self.connection_state = new_state
         if state_change and self._connection_state_callback:
-            self._task_manager.create_task(
-                self._wrap_connection_state_callback(new_state)
-            )
+            self._task_manager.create_task(self._wrap_connection_state_callback(new_state))
 
     async def _wrap_connection_state_callback(self, new_state: ConnectionState) -> None:
         """Call the external message handler."""
@@ -163,7 +160,7 @@ class HCSessionBase:
             try:
                 message_obj = load_message(message)
                 await self._message_handler(message_obj)
-            except (JSONDecodeError, KeyError):
+            except JSONDecodeError, KeyError:
                 self._logger.warning("Can't decode message: %s", message)
 
 
@@ -192,8 +189,7 @@ class HCSession(HCSessionBase):
         aiohttp_session: aiohttp.ClientSession | None = None,
         logger: logging.Logger | None = None,
         handshake: bool = True,
-        connection_state_callback: Callable[[ConnectionState], Awaitable[None]]
-        | None = None,
+        connection_state_callback: Callable[[ConnectionState], Awaitable[None]] | None = None,
         task_manager: TaskManager | None = None,
     ) -> None:
         """
@@ -266,14 +262,10 @@ class HCSession(HCSessionBase):
 
         if self._do_handshake:
             init_message = await self._pre_handshake()
-            self._task_manager.create_background_task(
-                self._wrap_recv_loop(), eager_start=True
-            )
+            self._task_manager.create_background_task(self._wrap_recv_loop(), eager_start=True)
             await self._handshake(init_message)
         else:
-            self._task_manager.create_background_task(
-                self._wrap_recv_loop(), eager_start=True
-            )
+            self._task_manager.create_background_task(self._wrap_recv_loop(), eager_start=True)
             self._logger.info("Connected, no handshake")
             self._set_connection_state(ConnectionState.CONNECTED)
 
@@ -345,9 +337,7 @@ class HCSession(HCSessionBase):
                 async with self._response_lock:
                     self._response_queues[message.msg_id].put_nowait(message)
             except KeyError:
-                self._logger.debug(
-                    "Received response for unkown Msg ID %s", message.msg_id
-                )
+                self._logger.debug("Received response for unkown Msg ID %s", message.msg_id)
             except asyncio.QueueFull:
                 self._logger.warning(
                     "Queue for response message %s is allready full",
@@ -407,9 +397,7 @@ class HCSession(HCSessionBase):
             message_services = Message(resource="/ci/services", version=1)
             response_services = await self.send_sync(message_services)
             self._set_service_versions(response_services)
-            self._task_manager.create_task(
-                self._wrap_message_handler(response_services)
-            )
+            self._task_manager.create_task(self._wrap_message_handler(response_services))
 
             if self.service_versions.get("ci", 1) < 3:  # noqa: PLR2004
                 # authenticate
@@ -424,22 +412,16 @@ class HCSession(HCSessionBase):
                 with contextlib.suppress(CodeResponsError):
                     message_info = Message(resource="/ci/info")
                     response_info = await self.send_sync(message_info)
-                    self._task_manager.create_task(
-                        self._wrap_message_handler(response_info)
-                    )
+                    self._task_manager.create_task(self._wrap_message_handler(response_info))
 
             if "iz" in self.service_versions:
                 message_info = Message(resource="/iz/info")
                 response_info = await self.send_sync(message_info)
-                self._task_manager.create_task(
-                    self._wrap_message_handler(response_info)
-                )
+                self._task_manager.create_task(self._wrap_message_handler(response_info))
 
             if self.service_versions.get("ei", 1) == 2:  # noqa: PLR2004
                 # report device ready
-                message_ready = Message(
-                    resource="/ei/deviceReady", action=Action.NOTIFY
-                )
+                message_ready = Message(resource="/ei/deviceReady", action=Action.NOTIFY)
                 await self.send(message_ready)
 
             if "ni" in self.service_versions:
@@ -461,6 +443,8 @@ class HCSession(HCSessionBase):
             msg = "Received Code response during Handshake"
             self._logger.exception(msg)
             raise HCHandshakeError(msg) from exc
+        except TimeoutError:
+            raise
         except Exception as exc:
             msg = "Unknown Exception during Handshake"
             self._logger.exception(msg)
@@ -520,6 +504,7 @@ class HCSessionReconnect(HCSession):
         await super().close()
 
     async def _reconnect_loop(self) -> None:
+        backoff = INITIAL_RECONNECT_DELAY
         while self._reconnect:
             try:
                 await self._socket.connect()
@@ -532,27 +517,25 @@ class HCSessionReconnect(HCSession):
                     await self._handshake(init_message)
                     break
 
-                self._task_manager.create_background_task(
-                    self._wrap_recv_loop(), eager_start=True
-                )
+                self._task_manager.create_background_task(self._wrap_recv_loop(), eager_start=True)
                 self._logger.info("Connected, no handshake")
                 self._set_connection_state(ConnectionState.CONNECTED)
                 break
 
-            except (ConnectionFailedError, aiohttp.ClientError):
+            except ConnectionFailedError, aiohttp.ClientError, HCHandshakeError:
                 self._logger.debug("Reconnect failed")
-                continue
-            except HCHandshakeError:
-                self._logger.debug("Reconnect failed")
-                self._set_connection_state(ConnectionState.CLOSING)
-                break
             except asyncio.CancelledError:
                 self._logger.debug("Reconnect cancelled")
                 raise
+            except TimeoutError:
+                self._logger.debug("Reconnect timed out")
             except Exception:
                 self._logger.exception("Reconnect exception")
                 await self.close()
                 break
+
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, MAX_RECONNECT_DELAY)
 
     async def _wrap_recv_loop(self) -> None:
         try:

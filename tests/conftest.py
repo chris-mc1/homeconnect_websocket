@@ -18,9 +18,7 @@ pytest_plugins = ["aiohttp.pytest_plugin", "homeconnect_websocket.testutils"]
 
 
 @pytest_asyncio.fixture
-async def appliance_server() -> AsyncGenerator[
-    Callable[..., Awaitable[ApplianceServer]]
-]:
+async def appliance_server() -> AsyncGenerator[Callable[..., Awaitable[ApplianceServer]]]:
     """Appliance Server with TLS."""
     servers: list[TestServer] = []
 
@@ -43,15 +41,11 @@ async def appliance_server() -> AsyncGenerator[
 
 
 @pytest_asyncio.fixture
-async def appliance_server_tls() -> AsyncGenerator[
-    Callable[..., Awaitable[ApplianceServer]]
-]:
+async def appliance_server_tls() -> AsyncGenerator[Callable[..., Awaitable[ApplianceServer]]]:
     """Appliance Server with TLS."""
     servers: list[TestServer] = []
 
-    async def go(
-        message_set: dict, psk64: str = TEST_PSK64, port: int = 443
-    ) -> ApplianceServer:
+    async def go(message_set: dict, psk64: str = TEST_PSK64, port: int = 443) -> ApplianceServer:
         appliance = ApplianceServer(message_set, psk64)
 
         psk = urlsafe_b64decode(psk64 + "===")
@@ -77,9 +71,7 @@ async def appliance_server_tls() -> AsyncGenerator[
 
 
 @pytest_asyncio.fixture
-async def appliance_server_aes() -> AsyncGenerator[
-    Callable[..., Awaitable[ApplianceServerAes]]
-]:
+async def appliance_server_aes() -> AsyncGenerator[Callable[..., Awaitable[ApplianceServerAes]]]:
     """Appliance Server with AES."""
     servers: list[TestServer] = []
 

@@ -208,14 +208,10 @@ class HomeAppliance:
             self._active_program = entity
 
         if "selectedProgram" in description:
-            entity = self._create_entity(
-                description["selectedProgram"], SelectedProgram
-            )
+            entity = self._create_entity(description["selectedProgram"], SelectedProgram)
             self._selected_program = entity
 
-    def _create_entity(
-        self, description: EntityDescription, cls: type[Entity]
-    ) -> Entity:
+    def _create_entity(self, description: EntityDescription, cls: type[Entity]) -> Entity:
         try:
             entity = cls(description, self)
         except Exception:
@@ -248,20 +244,29 @@ class HomeAppliance:
         """Return the current Active Program entity or None if no Program is active."""
         return (
             None
-            if self._active_program.value_shadow == 0
-            or self._active_program.value_shadow is None
+            if self._active_program.value_shadow == 0 or self._active_program.value_shadow is None
             else self.entities_uid[self._active_program.value]
         )
 
     @property
     def selected_program(self) -> Program | None:
-        """Return current selected Program entity or None if no Program is selected."""
+        """Return the current selected Program entity or None if no Program is selected."""
         return (
             None
             if self._selected_program.value_shadow == 0
             or self._selected_program.value_shadow is None
             else self.entities_uid[self._selected_program.value]
         )
+
+    @property
+    def active_program_entity(self) -> ActiveProgram | None:
+        """Return the ActiveProgram entity."""
+        return self._active_program
+
+    @property
+    def selected_program_entity(self) -> SelectedProgram | None:
+        """Return the SelectedProgram entity."""
+        return self._selected_program
 
     async def _init(self) -> None:
         try:

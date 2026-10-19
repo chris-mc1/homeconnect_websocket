@@ -57,9 +57,7 @@ class MockAppliance(HomeAppliance):
         _description.update(description)
         self.info = _description.get("info", {})
         self._task_manager = TaskManager()
-        self.callback_manager = CallbackManager(
-            self._task_manager, Mock(spec=logging.Logger)
-        )
+        self.callback_manager = CallbackManager(self._task_manager, Mock(spec=logging.Logger))
 
         self.entities_uid = {}
         self.entities = {}
@@ -70,6 +68,13 @@ class MockAppliance(HomeAppliance):
         self.options = {}
         self.programs = {}
         self._create_entities(_description)
+
+    def dump(self) -> dict:
+        """Dump Appliance state."""
+        return {
+            "entities": [entity.dump() for entity in self.entities.values()],
+            "service_versions": None,
+        }
 
 
 @pytest.fixture

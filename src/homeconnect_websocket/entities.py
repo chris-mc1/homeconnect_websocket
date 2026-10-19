@@ -5,8 +5,9 @@ from abc import ABC
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, TypedDict
 
+from .const import DESCRIPTION_CONTENT_TYPES, DESCRIPTION_DATA_TYPES, DESCRIPTION_PROTOCOL_TYPES
 from .errors import AccessError
-from .helpers import TYPE_MAPPING
+from .helpers import TYPE_MAPPING, format_hex
 from .message import Action, Message
 
 if TYPE_CHECKING:
@@ -143,25 +144,17 @@ class Entity(ABC):
     _enumeration: dict | None = None
     _rev_enumeration: dict
 
-    def __init__(
-        self, description: EntityDescription, appliance: HomeAppliance
-    ) -> None:
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
         """BaseEntity Class."""
         self._appliance: HomeAppliance = appliance
         self._uid = description["uid"]
         self._name = description["name"]
         self._callbacks = set()
         self._tasks = set()
-        self._type = TYPE_MAPPING.get(
-            description.get("protocolType"), lambda value: value
-        )
+        self._type = TYPE_MAPPING.get(description.get("protocolType"), lambda value: value)
         if "enumeration" in description:
-            self._enumeration = {
-                int(k): v for k, v in description["enumeration"].items()
-            }
-            self._rev_enumeration = {
-                v: int(k) for k, v in description["enumeration"].items()
-            }
+            self._enumeration = {int(k): v for k, v in description["enumeration"].items()}
+            self._rev_enumeration = {v: int(k) for k, v in description["enumeration"].items()}
         try:
             if "initValue" in description:
                 self._value = self._type(description["initValue"])
@@ -266,9 +259,7 @@ class AccessMixin(Entity):
 
     _access: Access | None = None
 
-    def __init__(
-        self, description: EntityDescription, appliance: HomeAppliance
-    ) -> None:
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
         """
         Mixin for Entities with access attribute.
 
@@ -311,9 +302,7 @@ class AvailableMixin(Entity):
 
     _available: bool | None = None
 
-    def __init__(
-        self, description: EntityDescription, appliance: HomeAppliance
-    ) -> None:
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
         """
         Mixin for Entities with available attribute.
 
@@ -358,9 +347,7 @@ class MinMaxMixin(Entity):
     _max: float | None = None
     _step: float | None = None
 
-    def __init__(
-        self, description: EntityDescription, appliance: HomeAppliance
-    ) -> None:
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
         """
         Mixin for Entities with available Min and Max values.
 
@@ -412,28 +399,79 @@ class MinMaxMixin(Entity):
         return state
 
 
-class Status(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
+class TypeMixin(Entity):
+    """Mixin for Entities with Type info."""
+
+    _cid: int | None = None
+    _did: int | None = None
+
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
+        """
+        Mixin for Entities with Type info.
+
+        Args:
+        ----
+            description (EntityDescription): The entity description
+            appliance (HomeAppliance): Appliance
+
+        """
+        super().__init__(description, appliance)
+        self._cid = description.get("refCID", self._cid)
+        self._did = description.get("refDID", self._did)
+
+    @property
+    def content_type(self) -> str | None:
+        """Content Type."""
+        if self._cid is None:
+            return "None"
+        return DESCRIPTION_CONTENT_TYPES.get(self._cid, "Unknown")
+
+    @property
+    def protocol_type(self) -> str | None:
+        """Protocol Type."""
+        if self._cid is None:
+            return "None"
+        return DESCRIPTION_PROTOCOL_TYPES.get(self._cid, "Unknown")
+
+    @property
+    def data_type(self) -> str | None:
+        """Data Type."""
+        if self._did is None:
+            return "None"
+        return DESCRIPTION_DATA_TYPES.get(self._did, "Unknown")
+
+    def dump(self) -> dict:
+        """Dump Entity state."""
+        state = super().dump()
+        state["CID"] = None if self._cid is None else format_hex(self._cid)
+        state["DID"] = None if self._did is None else format_hex(self._did)
+        state["contentType"] = self.content_type
+        state["protocolType"] = self.protocol_type
+        state["dataType"] = self.data_type
+        return state
+
+
+class Status(AccessMixin, AvailableMixin, MinMaxMixin, TypeMixin, Entity):
     """Represents an Settings Entity."""
 
 
-class Setting(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
+class Setting(AccessMixin, AvailableMixin, MinMaxMixin, TypeMixin, Entity):
     """Represents an Settings Entity."""
 
 
-class Event(Entity):
+class Event(TypeMixin, Entity):
     """Represents an Event Entity."""
+
+    _cid = 0x03
+    _did = 0x80
 
     async def acknowledge(self) -> None:
         """Acknowledge Event."""
-        await self._appliance.commands["BSH.Common.Command.AcknowledgeEvent"].execute(
-            self._uid
-        )
+        await self._appliance.commands["BSH.Common.Command.AcknowledgeEvent"].execute(self._uid)
 
     async def reject(self) -> None:
         """Reject Event."""
-        await self._appliance.commands["BSH.Common.Command.RejectEvent"].execute(
-            self._uid
-        )
+        await self._appliance.commands["BSH.Common.Command.RejectEvent"].execute(self._uid)
 
 
 class Command(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
@@ -457,16 +495,14 @@ class Command(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
         await self._appliance.session.send_sync(message)
 
 
-class Option(AccessMixin, AvailableMixin, MinMaxMixin, Entity):
+class Option(AccessMixin, AvailableMixin, MinMaxMixin, TypeMixin, Entity):
     """Represents an Option Entity."""
 
 
 class Program(AvailableMixin, Entity):
     """Represents an Program Entity."""
 
-    def __init__(
-        self, description: EntityDescription, appliance: HomeAppliance
-    ) -> None:
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
         """
         Program Entity.
 
@@ -501,7 +537,14 @@ class Program(AvailableMixin, Entity):
             {"uid": option_uid, "value": option_value}
             for option_uid, option_value in options.items()
         ]
-        if override_options is False:
+        full_option_set = (
+            self._appliance.selected_program_entity is not None
+            and self._appliance.selected_program_entity.full_option_set
+        ) or (
+            self._appliance.active_program_entity is not None
+            and self._appliance.active_program_entity.full_option_set
+        )
+        if override_options is False and full_option_set:
             _options.extend(
                 {"uid": option.uid, "value": option.value_shadow}
                 for option in self._options
@@ -521,9 +564,7 @@ class Program(AvailableMixin, Entity):
             action=Action.POST,
             data={
                 "program": self._uid,
-                "options": self._build_options(
-                    options=options, override_options=override_options
-                ),
+                "options": self._build_options(options=options, override_options=override_options),
             },
         )
         await self._appliance.session.send_sync(message)
@@ -540,9 +581,7 @@ class Program(AvailableMixin, Entity):
             action=Action.POST,
             data={
                 "program": self._uid,
-                "options": self._build_options(
-                    options=options, override_options=override_options
-                ),
+                "options": self._build_options(options=options, override_options=override_options),
             },
         )
         await self._appliance.session.send_sync(message)
@@ -564,11 +603,59 @@ class ActiveProgram(AccessMixin, AvailableMixin, Entity):
 
     _available = True
 
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
+        """
+        Active_Program Entity.
+
+        Args:
+        ----
+            description (EntityDescription): The entity description
+            appliance (HomeAppliance): Appliance
+
+        """
+        super().__init__(description, appliance)
+        self._fullOptionSet = description.get("fullOptionSet", True)
+
+    @property
+    def full_option_set(self) -> bool:
+        """FullOptionSet value."""
+        return self._fullOptionSet
+
+    def dump(self) -> dict:
+        """Dump Entity state."""
+        state = super().dump()
+        state["fullOptionSettion"] = self.full_option_set
+        return state
+
 
 class SelectedProgram(AccessMixin, AvailableMixin, Entity):
     """Represents the Selected_Program Entity."""
 
     _available = True
+
+    def __init__(self, description: EntityDescription, appliance: HomeAppliance) -> None:
+        """
+        Selected_Program Entity.
+
+        Args:
+        ----
+            description (EntityDescription): The entity description
+            appliance (HomeAppliance): Appliance
+
+        """
+        super().__init__(description, appliance)
+        self._fullOptionSet = description.get("fullOptionSet", True)
+
+    @property
+    def full_option_set(self) -> bool:
+        """FullOptionSet value."""
+        return self._fullOptionSet
+
+    def dump(self) -> dict:
+        """Dump Entity state."""
+        state = super().dump()
+        state["fullOptionSettion"] = self.full_option_set
+        return state
 
 
 class ProtectionPort(AccessMixin, AvailableMixin, Entity):

@@ -12,7 +12,7 @@ import yarl
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 
-from .errors import AuthenticationError
+from .errors import AuthenticationError, HCConnectionError, NotConnectedError
 
 
 def _make_url(host: str, *, ssl: bool) -> yarl.URL:
@@ -62,18 +62,27 @@ class HCSocket:
 
         self._websocket = await self._ws_connect()
 
-    async def _ws_connect(
-        self, *args: Any, **kwargs: Any
-    ) -> aiohttp.ClientWebSocketResponse:
+    async def _ws_connect(self, *args: Any, **kwargs: Any) -> aiohttp.ClientWebSocketResponse:
         if self._owned_session and self._session is None:
             self._session = aiohttp.ClientSession()
 
         return await self._session.ws_connect(self._url, *args, heartbeat=20, **kwargs)
 
-    @abstractmethod
     async def send(self, message: str) -> None:
         """Send message."""
+        if self.closed:
+            raise NotConnectedError
         self._logger.debug("Send     %s: %s", self._url, message)
+        try:
+            await self._send(message)
+        except aiohttp.ClientError as exc:
+            self._logger.debug("Failed to send message %s", message)
+            msg = "Failed to send message"
+            raise HCConnectionError(msg) from exc
+
+    @abstractmethod
+    async def _send(self, message: str) -> None:
+        """Send message."""
         await self._websocket.send_str(message)
 
     @abstractmethod
@@ -103,6 +112,8 @@ class HCSocket:
     async def receive(self, timeout: float | None = None) -> str:  # noqa: ASYNC109
         """Recive single message."""
         msg = await self._websocket.receive(timeout)
+        if msg.type == aiohttp.WSMsgType.ERROR:
+            raise msg.data
         return await self._receive(msg)
 
     def __aiter__(self) -> HCSocket:
@@ -110,6 +121,8 @@ class HCSocket:
 
     async def __anext__(self) -> str:
         msg = await self._websocket.__anext__()
+        if msg.type == aiohttp.WSMsgType.ERROR:
+            raise msg.data
         return await self._receive(msg)
 
 
@@ -156,15 +169,13 @@ class TlsSocket(HCSocket):
 
         self._websocket = await self._ws_connect(ssl=self._ssl_context)
 
-    async def send(self, message: str) -> None:
+    async def _send(self, message: str) -> None:
         """Send message."""
         self._logger.debug("Send     %s: %s", self._url, message)
         await self._websocket.send_str(message)
 
     async def _receive(self, message: aiohttp.WSMessage) -> str:
         self._logger.debug("Received %s: %s", self._url, str(message.data))
-        if message.type == aiohttp.WSMsgType.ERROR:
-            raise message.data
         return str(message.data)
 
 
@@ -222,7 +233,7 @@ class AesSocket(HCSocket):
 
         self._websocket = await self._ws_connect()
 
-    async def send(self, clear_msg: str) -> None:
+    async def _send(self, clear_msg: str) -> None:
         """Recive message."""
         self._logger.debug("Send     %s: %s", self._url, clear_msg)
         if isinstance(clear_msg, str):
@@ -231,9 +242,7 @@ class AesSocket(HCSocket):
         pad_len = 16 - (len(clear_msg) % 16)
         if pad_len == 1:
             pad_len += 16
-        clear_msg = (
-            clear_msg + b"\x00" + get_random_bytes(pad_len - 2) + bytearray([pad_len])
-        )
+        clear_msg = clear_msg + b"\x00" + get_random_bytes(pad_len - 2) + bytearray([pad_len])
 
         enc_msg = self._aes_encrypt.encrypt(clear_msg)
 
