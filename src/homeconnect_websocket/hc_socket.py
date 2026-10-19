@@ -12,7 +12,7 @@ import yarl
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 
-from .errors import AuthenticationError
+from .errors import AuthenticationError, NotConnectedError
 
 
 def _make_url(host: str, *, ssl: bool) -> yarl.URL:
@@ -68,9 +68,10 @@ class HCSocket:
 
         return await self._session.ws_connect(self._url, *args, heartbeat=20, **kwargs)
 
-    @abstractmethod
     async def send(self, message: str) -> None:
         """Send message."""
+        if self.closed:
+            raise NotConnectedError
         self._logger.debug("Send     %s: %s", self._url, message)
         await self._websocket.send_str(message)
 
@@ -158,7 +159,7 @@ class TlsSocket(HCSocket):
 
         self._websocket = await self._ws_connect(ssl=self._ssl_context)
 
-    async def send(self, message: str) -> None:
+    async def _send(self, message: str) -> None:
         """Send message."""
         self._logger.debug("Send     %s: %s", self._url, message)
         await self._websocket.send_str(message)
@@ -222,7 +223,7 @@ class AesSocket(HCSocket):
 
         self._websocket = await self._ws_connect()
 
-    async def send(self, clear_msg: str) -> None:
+    async def _send(self, clear_msg: str) -> None:
         """Recive message."""
         self._logger.debug("Send     %s: %s", self._url, clear_msg)
         if isinstance(clear_msg, str):
