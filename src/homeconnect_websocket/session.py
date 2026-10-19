@@ -443,6 +443,8 @@ class HCSession(HCSessionBase):
             msg = "Received Code response during Handshake"
             self._logger.exception(msg)
             raise HCHandshakeError(msg) from exc
+        except TimeoutError:
+            raise
         except Exception as exc:
             msg = "Unknown Exception during Handshake"
             self._logger.exception(msg)
