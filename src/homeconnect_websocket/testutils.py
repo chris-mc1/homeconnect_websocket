@@ -57,7 +57,8 @@ class MockAppliance(HomeAppliance):
         _description.update(description)
         self.info = _description.get("info", {})
         self._task_manager = TaskManager()
-        self.callback_manager = CallbackManager(self._task_manager, Mock(spec=logging.Logger))
+        self._logger = Mock(spec=logging.Logger)
+        self.callback_manager = CallbackManager(self._task_manager, self._logger)
 
         self.entities_uid = {}
         self.entities = {}
