@@ -171,7 +171,7 @@ class HCSession(HCSessionBase):
 
     service_versions: dict
     _sid: int | None = None
-    _last_msg_id: int | None = None
+    _last_msg_id: int = 0
     _device_info: dict
     _response_queues: dict[int, asyncio.Queue]
     _send_lock: asyncio.Lock
