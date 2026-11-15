@@ -53,6 +53,8 @@ class ConnectionState(StrEnum):
     """Session is closed"""
     ABNORMAL_CLOSURE = auto()
     """Session closed abnormally"""
+    AUTHENTICATION_ERROR = auto()
+    """Authentication error"""
 
 
 class HCSessionBase:
@@ -243,6 +245,19 @@ class HCSession(HCSessionBase):
 
         try:
             await self._socket.connect()
+            if self._do_handshake:
+                init_message = await self._pre_handshake()
+                self._task_manager.create_background_task(self._wrap_recv_loop(), eager_start=True)
+                await self._handshake(init_message)
+            else:
+                self._task_manager.create_background_task(self._wrap_recv_loop(), eager_start=True)
+                self._logger.info("Connected, no handshake")
+
+        except aiohttp.ClientConnectorSSLError as exc:
+            msg = "Authentication with Appliance failed"
+            self._logger.debug(msg, exc_info=True)
+            self._set_connection_state(ConnectionState.AUTHENTICATION_ERROR)
+            raise AuthenticationError(msg) from exc
         except (aiohttp.ClientConnectionError, aiohttp.ClientConnectorError) as exc:
             if (
                 isinstance(exc, aiohttp.ClientConnectorError)
@@ -252,22 +267,18 @@ class HCSession(HCSessionBase):
                 # TLS Auth Error
                 msg = "Authentication with Appliance failed"
                 self._logger.debug(msg, exc_info=True)
-                self._set_connection_state(ConnectionState.ABNORMAL_CLOSURE)
+                self._set_connection_state(ConnectionState.AUTHENTICATION_ERROR)
                 raise AuthenticationError(msg) from exc
 
             msg = "Failed to connect to Appliance"
             self._logger.debug(msg, exc_info=True)
             self._set_connection_state(ConnectionState.ABNORMAL_CLOSURE)
             raise ConnectionFailedError(msg) from exc
+        except AuthenticationError:
+            self._set_connection_state(ConnectionState.AUTHENTICATION_ERROR)
+            raise
 
-        if self._do_handshake:
-            init_message = await self._pre_handshake()
-            self._task_manager.create_background_task(self._wrap_recv_loop(), eager_start=True)
-            await self._handshake(init_message)
-        else:
-            self._task_manager.create_background_task(self._wrap_recv_loop(), eager_start=True)
-            self._logger.info("Connected, no handshake")
-            self._set_connection_state(ConnectionState.CONNECTED)
+        self._set_connection_state(ConnectionState.CONNECTED)
 
     async def close(self) -> None:
         """Close connction."""
@@ -276,6 +287,7 @@ class HCSession(HCSessionBase):
             ConnectionState.CLOSED,
             ConnectionState.CLOSING,
             ConnectionState.ABNORMAL_CLOSURE,
+            ConnectionState.AUTHENTICATION_ERROR,
         ):
             self._set_connection_state(ConnectionState.CLOSING)
             await self._socket.close()
@@ -524,6 +536,10 @@ class HCSessionReconnect(HCSession):
 
             except ConnectionFailedError, aiohttp.ClientError, HCHandshakeError:
                 self._logger.debug("Reconnect failed")
+            except AuthenticationError:
+                self._set_connection_state(ConnectionState.AUTHENTICATION_ERROR)
+                await self.close()
+                break
             except asyncio.CancelledError:
                 self._logger.debug("Reconnect cancelled")
                 raise
