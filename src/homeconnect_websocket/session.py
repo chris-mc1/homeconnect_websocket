@@ -298,6 +298,12 @@ class HCSession(HCSessionBase):
 
     async def send(self, message: Message) -> None:
         """Send message to Appliance, returns immediately."""
+        if self.connection_state not in (
+            ConnectionState.CONNECTED,
+            ConnectionState.HANDSHAKE,
+        ):
+            raise NotConnectedError
+
         async with self._send_lock:
             self._set_message_info(message)
             await self._socket.send(message.dump())
@@ -308,6 +314,12 @@ class HCSession(HCSessionBase):
         timeout: float = DEFAULT_SEND_TIMEOUT,  # noqa: ASYNC109
     ) -> Message | None:
         """Send message to Appliance, returns Response Message."""
+        if self.connection_state not in (
+            ConnectionState.CONNECTED,
+            ConnectionState.HANDSHAKE,
+        ):
+            raise NotConnectedError
+
         response_queue: asyncio.Queue[Message] = asyncio.Queue(maxsize=1)
 
         async with self._send_lock:
