@@ -3,17 +3,24 @@
 from __future__ import annotations
 
 import logging
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from homeconnect_websocket import HomeAppliance
 from homeconnect_websocket.callback_manager import CallbackManager
-from homeconnect_websocket.session import HCSession
+from homeconnect_websocket.entities import DeviceDescription
+from homeconnect_websocket.errors import AllreadyConnectedError
+from homeconnect_websocket.session import ConnectionState, HCSession
 from homeconnect_websocket.task_manager import TaskManager
 
-from .entities import DeviceDescription
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from aiohttp import ClientSession
+
+    from homeconnect_websocket.message import Message
 
 TEST_PSK64 = "whZJhkPa3a1hkuDdI3twHdqi1qhTxjnKE8954_zyY_E="
 TEST_IV64 = "ofi7M1WB98sJeM2H1Ew3XA=="
@@ -24,6 +31,122 @@ TEST_APP_NAME = "Test Device"
 BASE_DESCRIPTION = DeviceDescription(
     info={}, status=[], setting=[], event=[], command=[], option=[], program=[]
 )
+
+
+class MockSession(HCSession):
+    """Mock HCSession."""
+
+    send: AsyncMock
+    send_sync: AsyncMock
+    _connect: AsyncMock
+    _close: AsyncMock
+    _mock_init: bool = False
+
+    def __init__(  # noqa: PLR0913
+        self,
+        host: str,
+        app_name: str,
+        app_id: str,
+        psk64: str,
+        iv64: str | None = None,
+        message_handler: Callable[[Message], Awaitable[None]] | None = None,
+        *,
+        aiohttp_session: ClientSession | None = None,
+        logger: logging.Logger | None = None,
+        handshake: bool = True,
+        connection_state_callback: Callable[[ConnectionState], Awaitable[None]] | None = None,
+        task_manager: TaskManager | None = None,
+    ) -> None:
+        """
+        HomeConnect Session.
+
+        Args:
+        ----
+        host (str): Host.
+        app_name (str): Name used to identify this App
+        app_id (str): ID used to identify this App
+        psk64 (str): urlsafe base64 encoded psk key
+        iv64 (Optional[str]): urlsafe base64 encoded iv64 key (only AES)
+        message_handler (Callable[[Message], Awaitable[None]]): called for each message
+        aiohttp_session (Optional[aiohttp.ClientSession]): ClientSession
+        logger (Optional[Logger]): Logger
+        handshake (bool): Automatic Handshake
+        connection_state_callback (Optional[Callable[[ConnectionState], Awaitable[None]]]): Called when connection state changes
+        task_manager (Optional[TaskManager]): Task manager
+
+        """  # noqa: E501
+        self._host = host
+        self._psk64 = psk64
+        self._iv64 = iv64
+        self._connection_state_callback = connection_state_callback
+        self._app_name = app_name
+        self._app_id = app_id
+        self._do_handshake = handshake
+        self._ext_message_handler = message_handler
+        self._logger = logger
+        self._aiohttp_session = aiohttp_session
+        self._task_manager = TaskManager() if task_manager is None else task_manager
+
+        self.send = AsyncMock()
+        self.send_sync = AsyncMock()
+        self._connect = AsyncMock()
+        self._close = AsyncMock()
+
+    async def connect(self) -> None:
+        """Open Connection with Appliance."""
+        if self.connection_state in (
+            ConnectionState.CONNECTING,
+            ConnectionState.HANDSHAKE,
+            ConnectionState.CONNECTED,
+        ):
+            raise AllreadyConnectedError
+
+        await self.set_connection_state(ConnectionState.CONNECTING)
+        await self._connect()
+        if self._do_handshake:
+            await self.set_connection_state(ConnectionState.HANDSHAKE)
+        await self.set_connection_state(ConnectionState.CONNECTED)
+
+    async def close(self) -> None:
+        """Close connction."""
+        if self.connection_state not in (
+            ConnectionState.CLOSED,
+            ConnectionState.CLOSING,
+            ConnectionState.ABNORMAL_CLOSURE,
+            ConnectionState.AUTHENTICATION_ERROR,
+        ):
+            self._set_connection_state(ConnectionState.CLOSING)
+            await self._close()
+            await self._task_manager.block_till_done()  # Wait for all pending callbacks
+            self._set_connection_state(ConnectionState.CLOSED)
+
+        await self._task_manager.block_till_done()  # Wait for connection state callback
+
+    @property
+    def connected(self) -> bool:
+        """Is connected."""
+        return self.connection_state == ConnectionState.CONNECTED
+
+    async def set_connection_state(self, new_state: ConnectionState) -> None:
+        """
+        Set connection state and execute callback on change.
+
+        Args:
+        ----
+        new_state (ConnectionState): new connection state
+
+        """
+        state_change = self.connection_state != new_state
+        self.connection_state = new_state
+        if state_change and self._connection_state_callback:
+            await self._connection_state_callback(new_state)
+
+    def reset_mock(self) -> None:
+        """Reset mock."""
+        self.connect.reset_mock()
+        self.close.reset_mock()
+        self.send.reset_mock()
+        self.send_sync.reset_mock()
 
 
 class MockAppliance(HomeAppliance):
@@ -549,7 +672,7 @@ DESCRIPTION = DeviceDescription(
 
 
 class MockApplianceType(Protocol):
-    """Typeing for mock_homeconnect_appliance fixture."""
+    """Typing for mock_homeconnect_appliance fixture."""
 
     async def __call__(  # noqa: D102
         self,
