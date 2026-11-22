@@ -152,17 +152,19 @@ class MockSession(HCSession):
 class MockAppliance(HomeAppliance):
     """Mock HomeAppliance."""
 
+    session: MockSession
+
     def __init__(  # noqa: PLR0913
         self,
         description: DeviceDescription,
-        host: str,  # noqa: ARG002
-        app_name: str,  # noqa: ARG002
-        app_id: str,  # noqa: ARG002
-        psk64: str,  # noqa: ARG002
-        iv64: str | None = None,  # noqa: ARG002
+        host: str,
+        app_name: str,
+        app_id: str,
+        psk64: str,
+        iv64: str | None = None,
         *,
-        session: ClientSession | None = None,  # noqa: ARG002
-        logger: logging.Logger | None = None,  # noqa: ARG002
+        session: ClientSession | None = None,
+        logger: logging.Logger | None = None,
         reconect: bool = True,
         connection_callback: Callable[[ConnectionState], Awaitable[None]] | None = None,
     ) -> None:
@@ -189,6 +191,18 @@ class MockAppliance(HomeAppliance):
         self._task_manager = TaskManager()
         self._reconect = reconect
         self._ext_connection_state_callback = connection_callback
+
+        self.session = MockSession(
+            host,
+            app_name,
+            app_id,
+            psk64,
+            iv64,
+            aiohttp_session=session,
+            logger=logger,
+            connection_state_callback=self._connection_callback,
+            task_manager=self._task_manager,
+        )
 
         self.callback_manager = CallbackManager(self._task_manager, Mock(spec=logging.Logger))
         self.entities_uid = {}
@@ -227,6 +241,13 @@ class MockAppliance(HomeAppliance):
     def active_program(self, program: Program) -> None:
         self.active_program_entity._value = program.uid  # noqa: SLF001
         self.active_program_entity._value_shadow = program.uid  # noqa: SLF001
+
+    def reset_mock(self) -> None:
+        """Reset mock."""
+        self.session.reset_mock()
+
+    async def _init(self) -> None:
+        return
 
 
 @pytest.fixture
