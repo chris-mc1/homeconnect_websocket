@@ -10,7 +10,7 @@ import pytest
 
 from homeconnect_websocket import HomeAppliance
 from homeconnect_websocket.callback_manager import CallbackManager
-from homeconnect_websocket.entities import DeviceDescription
+from homeconnect_websocket.entities import DeviceDescription, Program
 from homeconnect_websocket.errors import AllreadyConnectedError
 from homeconnect_websocket.session import ConnectionState, HCSession
 from homeconnect_websocket.task_manager import TaskManager
@@ -152,14 +152,19 @@ class MockSession(HCSession):
 class MockAppliance(HomeAppliance):
     """Mock HomeAppliance."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         description: DeviceDescription,
-        host: str,
-        app_name: str,
-        app_id: str,
-        psk64: str,
-        iv64: str | None = None,
+        host: str,  # noqa: ARG002
+        app_name: str,  # noqa: ARG002
+        app_id: str,  # noqa: ARG002
+        psk64: str,  # noqa: ARG002
+        iv64: str | None = None,  # noqa: ARG002
+        *,
+        session: ClientSession | None = None,  # noqa: ARG002
+        logger: logging.Logger | None = None,  # noqa: ARG002
+        reconect: bool = True,
+        connection_callback: Callable[[ConnectionState], Awaitable[None]] | None = None,
     ) -> None:
         """
         HomeConnect Appliance.
@@ -172,16 +177,20 @@ class MockAppliance(HomeAppliance):
             app_id (str): ID used to identify this App
             psk64 (str): urlsafe base64 encoded psk key
             iv64 (Optional[str]): urlsafe base64 encoded iv64 key (only AES)
+            session (Optional[aiohttp.ClientSession]): ClientSession
+            logger (Optional[Logger]): Logger
+            reconect (bool): Automatic Reconect
+            connection_callback (Optional[Callable[[ConnectionState], Awaitable[None]]]): Called when connection state changes
 
-        """
-        session_mock = Mock(return_value=AsyncMock(spec=HCSession))
-        self.session = session_mock(host, app_name, app_id, psk64, iv64)
-        _description = BASE_DESCRIPTION.copy()
-        _description.update(description)
-        self.info = _description.get("info", {})
+        """  # noqa: E501
+        self._description = BASE_DESCRIPTION.copy()
+        self._description.update(description)
+        self.info = self._description.get("info", {})
         self._task_manager = TaskManager()
-        self.callback_manager = CallbackManager(self._task_manager, Mock(spec=logging.Logger))
+        self._reconect = reconect
+        self._ext_connection_state_callback = connection_callback
 
+        self.callback_manager = CallbackManager(self._task_manager, Mock(spec=logging.Logger))
         self.entities_uid = {}
         self.entities = {}
         self.status = {}
@@ -190,7 +199,7 @@ class MockAppliance(HomeAppliance):
         self.commands = {}
         self.options = {}
         self.programs = {}
-        self._create_entities(_description)
+        self._create_entities(self._description)
 
     def dump(self) -> dict:
         """Dump Appliance state."""
@@ -198,6 +207,26 @@ class MockAppliance(HomeAppliance):
             "entities": [entity.dump() for entity in self.entities.values()],
             "service_versions": None,
         }
+
+    @property
+    def selected_program(self) -> Program | None:
+        """Return the current selected Program entity or None if no Program is selected."""
+        return super().selected_program
+
+    @selected_program.setter
+    def selected_program(self, program: Program) -> None:
+        self.selected_program_entity._value = program.uid  # noqa: SLF001
+        self.selected_program_entity._value_shadow = program.uid  # noqa: SLF001
+
+    @property
+    def active_program(self) -> Program | None:
+        """Return the current Active Program entity or None if no Program is active."""
+        return super().active_program
+
+    @active_program.setter
+    def active_program(self, program: Program) -> None:
+        self.active_program_entity._value = program.uid  # noqa: SLF001
+        self.active_program_entity._value_shadow = program.uid  # noqa: SLF001
 
 
 @pytest.fixture
