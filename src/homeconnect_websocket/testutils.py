@@ -11,7 +11,11 @@ import pytest
 from homeconnect_websocket import HomeAppliance
 from homeconnect_websocket.callback_manager import CallbackManager
 from homeconnect_websocket.entities import DeviceDescription, Program
-from homeconnect_websocket.errors import AllreadyConnectedError
+from homeconnect_websocket.errors import (
+    AllreadyConnectedError,
+    AuthenticationError,
+    ConnectionFailedError,
+)
 from homeconnect_websocket.session import ConnectionState, HCSession
 from homeconnect_websocket.task_manager import TaskManager
 
@@ -102,7 +106,16 @@ class MockSession(HCSession):
             raise AllreadyConnectedError
 
         await self.set_connection_state(ConnectionState.CONNECTING)
-        await self._connect()
+
+        try:
+            await self._connect()
+        except AuthenticationError:
+            self._set_connection_state(ConnectionState.AUTHENTICATION_ERROR)
+            raise
+        except ConnectionFailedError:
+            self._set_connection_state(ConnectionState.ABNORMAL_CLOSURE)
+            raise
+
         if self._do_handshake:
             await self.set_connection_state(ConnectionState.HANDSHAKE)
         await self.set_connection_state(ConnectionState.CONNECTED)
@@ -119,7 +132,8 @@ class MockSession(HCSession):
             await self._close()
             await self._task_manager.block_till_done()  # Wait for all pending callbacks
             self._set_connection_state(ConnectionState.CLOSED)
-
+        else:
+            await self._close()
         await self._task_manager.block_till_done()  # Wait for connection state callback
 
     @property
