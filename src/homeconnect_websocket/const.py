@@ -4,8 +4,12 @@ from typing import Final
 
 DEFAULT_HANDSHAKE_TIMEOUT: Final[int] = 60
 DEFAULT_SEND_TIMEOUT: Final[int] = 20
+DEFAULT_CONNECT_TIMEOUT: Final[int] = 30
 INITIAL_RECONNECT_DELAY: Final = 5
 MAX_RECONNECT_DELAY: Final = 300
+RECONNECT_JITTER: Final = 0.1
+STABLE_CONNECTION_TIME: Final = 60
+"""Time a connection has to last before the reconnect delay is reset."""
 
 # CID to content type mapping for Description Parser
 DESCRIPTION_CONTENT_TYPES: Final = {
