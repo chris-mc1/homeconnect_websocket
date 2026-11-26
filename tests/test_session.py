@@ -382,18 +382,27 @@ async def test_session_auth_error_tls(
 ) -> None:
     """Test Session connction failing."""
     appliance_server = await appliance_server_tls(DEVICE_MESSAGE_SET_1)
+    connection_callback = AsyncMock()
 
     session = HCSession(
         appliance_server.host,
         app_name=TEST_APP_NAME,
         app_id=TEST_APP_ID,
         psk64="DucPCx_bN2d0fP07ptJDas_umP6YK63aAsrgl7kUWZk",
+        connection_state_callback=connection_callback,
     )
 
     with pytest.raises(AuthenticationError):
         await session.connect()
 
     await session.close()
+
+    connection_callback.assert_has_awaits(
+        [
+            call(ConnectionState.CONNECTING),
+            call(ConnectionState.AUTHENTICATION_ERROR),
+        ]
+    )
 
 
 @pytest.mark.asyncio
@@ -402,6 +411,7 @@ async def test_session_auth_error_aes(
 ) -> None:
     """Test Session connction failing."""
     appliance_server = await appliance_server_aes(DEVICE_MESSAGE_SET_1)
+    connection_callback = AsyncMock()
 
     session = HCSession(
         appliance_server.host,
@@ -409,12 +419,20 @@ async def test_session_auth_error_aes(
         app_id=TEST_APP_ID,
         psk64="DucPCx_bN2d0fP07ptJDas_umP6YK63aAsrgl7kUWZk",
         iv64="8sJeiM2Hofw3XA7M1WB91E==",
+        connection_state_callback=connection_callback,
     )
 
     with pytest.raises(AuthenticationError):
         await session.connect()
 
     await session.close()
+
+    connection_callback.assert_has_awaits(
+        [
+            call(ConnectionState.CONNECTING),
+            call(ConnectionState.AUTHENTICATION_ERROR),
+        ]
+    )
 
 
 @pytest.mark.asyncio
