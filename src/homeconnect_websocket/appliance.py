@@ -28,6 +28,11 @@ if TYPE_CHECKING:
     from aiohttp import ClientSession
 
 
+# Keys of a Program scoped Option change that are not re-applied when the Program is
+# selected again: identifiers, and the value, which is only valid at the time it was sent.
+_NOT_REMEMBERED = ("uid", "parentUID", "value")
+
+
 class HomeAppliance:
     """HomeConnect Appliance."""
 
@@ -59,6 +64,8 @@ class HomeAppliance:
 
     _selected_program: SelectedProgram | None = None
     _active_program: ActiveProgram | None = None
+    _program_option_changes: dict[int, dict[int, dict]]
+    "description changes of options, scoped to a program (parentUID), by program uid and option uid"
     _task_manager: TaskManager
     _ext_connection_state_callback: Callable[[ConnectionState], Awaitable[None]] | None
     callback_manager: CallbackManager
@@ -172,13 +179,73 @@ class HomeAppliance:
         async with self.callback_manager:
             for entity in data:
                 uid = int(entity["uid"])
-                if uid in self.entities_uid:
-                    await self.entities_uid[uid].update(entity)
-                else:
+                if uid not in self.entities_uid:
                     self._logger.debug("Recived Update for unkown entity %s", uid)
+                    continue
+                if not self._apply_program_scope(uid, entity):
+                    continue
+                await self.entities_uid[uid].update(entity)
+                if self._is_program_root(uid):
+                    await self._restore_program_scope(int(entity.get("value") or 0))
+
+    def _program_scope(self, uid: int, entity: dict) -> int | None:
+        """
+        Return the Program uid an Option update is scoped to, or None.
+
+        Appliances send description changes of Options with a parentUID: the Program the
+        change applies to. Changes for other parents (e.g. a cavity) or for other entity
+        types are not scoped.
+        """
+        parent_uid = entity.get("parentUID")
+        if not parent_uid or not isinstance(self.entities_uid[uid], Option):
+            return None
+        if isinstance(self.entities_uid.get(parent_uid), Program):
+            return parent_uid
+        return None
+
+    def _relevant_programs(self) -> set[int]:
+        """Return the uids of the selected and the active Program."""
+        programs = set()
+        for root in (self._selected_program, self._active_program):
+            if root is not None and root.value_raw not in (0, None):
+                programs.add(int(root.value_raw))
+        return programs
+
+    def _is_program_root(self, uid: int) -> bool:
+        return any(
+            root is not None and root.uid == uid
+            for root in (self._selected_program, self._active_program)
+        )
+
+    def _apply_program_scope(self, uid: int, entity: dict) -> bool:
+        """
+        Remember a Program scoped Option change, return if it should be applied now.
+
+        A change scoped to a Program is only applied while that Program is selected or
+        active. Otherwise, e.g. a change for an unused favorite sent in
+        /ro/allDescriptionChanges, would set the access or availability of the Option
+        for every Program.
+        """
+        program_uid = self._program_scope(uid, entity)
+        if program_uid is None:
+            return True
+        changes = {key: value for key, value in entity.items() if key not in _NOT_REMEMBERED}
+        if changes:
+            program_changes = self._program_option_changes.setdefault(program_uid, {})
+            program_changes.setdefault(uid, {}).update(changes)
+        if program_uid in self._relevant_programs():
+            return True
+        self._logger.debug("Skipped update of Option %s for Program %s", uid, program_uid)
+        return False
+
+    async def _restore_program_scope(self, program_uid: int) -> None:
+        """Apply the remembered Option changes of a Program that was selected or started."""
+        for uid, changes in self._program_option_changes.get(program_uid, {}).items():
+            await self.entities_uid[uid].update({"uid": uid, **changes})
 
     def _create_entities(self, description: DeviceDescription) -> None:
         """Create Entities from Device description."""
+        self._program_option_changes = {}
         for status in description.get("status", []):
             entity = self._create_entity(status, Status)
             self.status[entity.name] = entity
